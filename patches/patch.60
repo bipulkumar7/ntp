@@ -1,0 +1,67 @@
+
+Received: from louie.udel.edu by huey.udel.edu id aa20081; 16 May 94 5:40 EDT
+Received: from swan.cl.cam.ac.uk by louie.udel.edu id ab19708;
+          16 May 94 5:34 EDT
+Received: from labes.cl.cam.ac.uk (user pb (rfc931)) by swan.cl.cam.ac.uk 
+          with SMTP (PP-6.5) to cl; Mon, 16 May 1994 10:32:53 +0100
+To: Mills@udel.edu
+cc: Piete Brooks <Piete.Brooks@cl.cam.ac.uk>, 
+    Ajit Thyagarajan <ajit@udel.edu>
+Subject: Re: Patches to pogo-u: what next ?
+In-reply-to: Your message of Sun, 15 May 1994 22:06:42 -0400. <9405152206.aa18283@huey.udel.edu>
+Date: Mon, 16 May 1994 10:32:18 +0100
+From: Piete Brooks <Piete.Brooks@cl.cam.ac.uk>
+Message-ID: <"swan.cl.cam.:091650:940516093314"@cl.cam.ac.uk>
+
+> Patch.59 is up and running on all munchkins, snakes, alphae and a skunk
+> named Alvin.
+
+Is a "skunk" a new machine type -- or your floral english ?
+
+% telnet alvin.udel.edu
+alvin.udel.edu: unknown host
+telnet>
+
+> At this moment (160202Z May 94)
+
+Who taught you datestamps like that ?? hour, min, sec, month & year but no day
+
+> all patches, quilts and napkin scribbles are IN xntp3.3v.tar.Z posted
+> everywhere my paw can touch, except poor grundoon, whose 9600-bps thread I
+> will abuse later this eve.
+
+Not quite all edits ..... these two have excaped twice now !
+
+*** ../../src/xntpd/ntp_peer.c.orig	Sat May 14 17:52:00 1994
+--- ntp_peer.c	Mon May 16 10:18:16 1994
+***************
+*** 413,414 ****
+--- 413,416 ----
+  		    (peer->flags & FLAG_REFCLOCK);
++ 		peer->cast_flags = (hmode == MODE_BROADCAST) ?
++ 			IN_CLASSD(ntohl(srcadr->sin_addr.s_addr)) ? MDF_MCAST : MDF_BCAST : MDF_UCAST;
+  		peer->ttl = (u_char)ttl;
+***************
+*** 477,480 ****
+  		peer->dstadr = any_interface;
+! 	peer->cast_flags = (hmode == MODE_BROADCAST || hmode == MODE_BCLIENT || hmode == MODE_MCLIENT) ?
+! 		(peer->dstadr->flags & INT_MULTICAST) ? MDF_MCAST : MDF_BCAST : MDF_UCAST;
+  	peer->hmode = (u_char)hmode;
+--- 479,485 ----
+  		peer->dstadr = any_interface;
+! 	peer->cast_flags = (hmode == MODE_BROADCAST) ?
+! 		(IN_CLASSD(ntohl(srcadr->sin_addr.s_addr))) ? MDF_MCAST : MDF_BCAST :
+! 		(hmode == MODE_BCLIENT || hmode == MODE_MCLIENT) ?
+! 		(peer->dstadr->flags & INT_MULTICAST) ? MDF_MCAST : MDF_BCAST :
+! 		MDF_UCAST;
+  	peer->hmode = (u_char)hmode;
+
+
+> I haven't tried ttl on any machine. Rabbit bunnylou still
+> doesn't respond to multicast, but this is enough for a weekend's work.
+
+Indeed -- I'm seeing no multicasts from the outside world :-((
+
+BTW: as I understand it, it's not OK to be broadcast client & broadcast server.
+     It is OK to be multicast client and multicast server ?
+

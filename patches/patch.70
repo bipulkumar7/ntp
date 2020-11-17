@@ -1,0 +1,1313 @@
+
+Received: from louie.udel.edu by huey.udel.edu id aa12958; 12 Jun 94 8:06 EDT
+Received: from faui45.informatik.uni-erlangen.de by louie.udel.edu id aa08970;
+          12 Jun 94 8:05 EDT
+Received: from faui43.informatik.uni-erlangen.de by uni-erlangen.de with SMTP;
+	id AA29570 (5.65c-6/7.3v-FAU); Sun, 12 Jun 1994 14:04:58 +0200
+Received: by immd4.informatik.uni-erlangen.de;
+	id AA23544 (5.65c-6/7.3m-FAU); Sun, 12 Jun 1994 14:04:56 +0200
+From: Frank Kardel <Frank.Kardel@informatik.uni-erlangen.de>
+Message-Id: <199406121204.AA23544@faui43.informatik.uni-erlangen.de>
+Subject: 2nd June 3.3ww patches
+To: mills@udel.edu
+Date: Sun, 12 Jun 94 14:04:55 DST
+X-Mailer: ELM [version 2.3 PL11]
+
+Hi, Dave,
+
+a new patch run as some LONG fixes didn`t make it into 3.3ww and some little
+bug fixes.
+
+	- return INFO_ERR_NODATA in mode 7 request
+	  if kern pll is compiled in but not available
+	- finish kern pll initialisation even if driftfile contains
+	  rubbish
+	- parse fixes
+
+diff -c include/parse.h:1.1.1.12 include/parse.h:3.21
+*** include/parse.h:1.1.1.12	Sat Jun 11 23:46:33 1994
+--- include/parse.h	Sat Jun 11 23:46:34 1994
+***************
+*** 1,7 ****
+  /*
+!  * /src/NTP/REPOSITORY/v3/include/parse.h,v 3.21 1994/05/30 20:58:34 kardel Exp
+   *
+!  * parse.h,v 3.21 1994/05/30 20:58:34 kardel Exp
+   *
+   * Copyright (c) 1989,1990,1991,1992,1993,1994
+   * Frank Kardel Friedrich-Alexander Universitaet Erlangen-Nuernberg
+--- 1,7 ----
+  /*
+!  * /src/NTP/REPOSITORY/v3/include/parse.h,v 3.21 1994/05/30 20:58:34 kardel Exp
+   *
+!  * parse.h,v 3.21 1994/05/30 20:58:34 kardel Exp
+   *
+   * Copyright (c) 1989,1990,1991,1992,1993,1994
+   * Frank Kardel Friedrich-Alexander Universitaet Erlangen-Nuernberg
+***************
+*** 15,21 ****
+  #ifndef __PARSE_H__
+  #define __PARSE_H__
+  #if	!(defined(lint) || defined(__GNUC__))
+!   static char parsehrcsid[]="parse.h,v 3.21 1994/05/30 20:58:34 kardel Exp";
+  #endif
+  
+  #include "ntp_types.h"
+--- 15,21 ----
+  #ifndef __PARSE_H__
+  #define __PARSE_H__
+  #if	!(defined(lint) || defined(__GNUC__))
+!   static char parsehrcsid[]="parse.h,v 3.21 1994/05/30 20:58:34 kardel Exp";
+  #endif
+  
+  #include "ntp_types.h"
+***************
+*** 282,296 ****
+    char          *parse_data;    /* data buffer */
+    unsigned short parse_dsize;	/* size of data buffer */
+    unsigned short parse_lformat;	/* last format used */
+!   unsigned LONG  parse_lstate;	/* last state code */
+    char          *parse_ldata;	/* last data buffer */
+    unsigned short parse_ldsize;	/* last data buffer length */
+!   unsigned LONG  parse_badformat;	/* number of unparsable pakets */
+    
+    /*
+     * time stamp filtering
+     */
+!   LONG           parse_delta[PARSE_DELTA]; /* delta buffer */
+    int            parse_dindex;
+  
+    parsetime_t      parse_dtime;	/* external data prototype */
+--- 282,296 ----
+    char          *parse_data;    /* data buffer */
+    unsigned short parse_dsize;	/* size of data buffer */
+    unsigned short parse_lformat;	/* last format used */
+!   u_long         parse_lstate;	/* last state code */
+    char          *parse_ldata;	/* last data buffer */
+    unsigned short parse_ldsize;	/* last data buffer length */
+!   u_long         parse_badformat;	/* number of unparsable pakets */
+    
+    /*
+     * time stamp filtering
+     */
+!   long           parse_delta[PARSE_DELTA]; /* delta buffer */
+    int            parse_dindex;
+  
+    parsetime_t      parse_dtime;	/* external data prototype */
+***************
+*** 392,398 ****
+  /*
+   * History:
+   *
+!  * parse.h,v
+   * Revision 3.21  1994/05/30  20:58:34  kardel
+   * fix prototypes
+   *
+--- 392,398 ----
+  /*
+   * History:
+   *
+!  * parse.h,v
+   * Revision 3.21  1994/05/30  20:58:34  kardel
+   * fix prototypes
+   *
+diff -c include/sys/parsestreams.h:1.1.1.7 include/sys/parsestreams.h:3.12
+*** include/sys/parsestreams.h:1.1.1.7	Sat Jun 11 23:46:38 1994
+--- include/sys/parsestreams.h	Sat Jun 11 23:46:38 1994
+***************
+*** 1,7 ****
+  /*
+!  * /src/NTP/REPOSITORY/v3/include/sys/parsestreams.h,v 3.11 1994/01/25 19:04:30 kardel Exp
+   *
+!  * parsestreams.h,v 3.11 1994/01/25 19:04:30 kardel Exp
+   *
+   * Copyright (c) 1989,1990,1991,1992,1993,1994
+   * Frank Kardel Friedrich-Alexander Universitaet Erlangen-Nuernberg
+--- 1,7 ----
+  /*
+!  * /src/NTP/REPOSITORY/v3/include/sys/parsestreams.h,v 3.12 1994/06/01 08:21:08 kardel Exp
+   *
+!  * parsestreams.h,v 3.12 1994/06/01 08:21:08 kardel Exp
+   *
+   * Copyright (c) 1989,1990,1991,1992,1993,1994
+   * Frank Kardel Friedrich-Alexander Universitaet Erlangen-Nuernberg
+***************
+*** 13,19 ****
+   */
+  
+  #if	!(defined(lint) || defined(__GNUC__))
+!   static char parse77hrcsid[]="parsestreams.h,v 3.11 1994/01/25 19:04:30 kardel Exp";
+  #endif
+  
+  #undef PARSEKERNEL
+--- 13,19 ----
+   */
+  
+  #if	!(defined(lint) || defined(__GNUC__))
+!   static char parse77hrcsid[]="parsestreams.h,v 3.12 1994/06/01 08:21:08 kardel Exp";
+  #endif
+  
+  #undef PARSEKERNEL
+***************
+*** 42,48 ****
+  
+  /*--------------- debugging support ---------------------------------*/
+  
+! #ifdef DEBUG_DCF
+  
+  extern int parsedebug;
+  
+--- 42,48 ----
+  
+  /*--------------- debugging support ---------------------------------*/
+  
+! #ifdef DEBUG_PARSE
+  
+  extern int parsedebug;
+  
+diff -c parse/Makefile.kernel:1.1.1.5 parse/Makefile.kernel:3.11
+*** parse/Makefile.kernel:1.1.1.5	Sat Jun 11 23:47:49 1994
+--- parse/Makefile.kernel	Sat Jun 11 23:47:49 1994
+***************
+*** 2,8 ****
+  # very simple makefile (SunOS!)
+  #
+  # Possible defines:
+! # DEBUG_DCF:	include debug code (STREAMS mechanism and parsing)
+  # DEBUG_CD:	include signal propagation to sun4c LED (sun4c only)
+  #
+  # Possible defines (parsestreams variants only):
+--- 2,8 ----
+  # very simple makefile (SunOS!)
+  #
+  # Possible defines:
+! # DEBUG_PARSE:	include debug code (STREAMS mechanism and parsing)
+  # DEBUG_CD:	include signal propagation to sun4c LED (sun4c only)
+  #
+  # Possible defines (parsestreams variants only):
+diff -c parse/clk_schmid.c:1.1.1.11 parse/clk_schmid.c:3.16
+*** parse/clk_schmid.c:1.1.1.11	Sat Jun 11 23:47:54 1994
+--- parse/clk_schmid.c	Sat Jun 11 23:47:54 1994
+***************
+*** 1,8 ****
+  #if defined(REFCLOCK) && (defined(PARSE) || defined(PARSEPPS)) && defined(CLOCK_SCHMID)
+  /*
+!  * /src/NTP/REPOSITORY/v3/parse/clk_schmid.c,v 3.15 1994/05/12 12:34:48 kardel Exp
+   *  
+!  * clk_schmid.c,v 3.15 1994/05/12 12:34:48 kardel Exp
+   *
+   * Schmid clock support
+   *
+--- 1,8 ----
+  #if defined(REFCLOCK) && (defined(PARSE) || defined(PARSEPPS)) && defined(CLOCK_SCHMID)
+  /*
+!  * /src/NTP/REPOSITORY/v3/parse/clk_schmid.c,v 3.16 1994/05/30 10:20:03 kardel Exp
+   *  
+!  * clk_schmid.c,v 3.16 1994/05/30 10:20:03 kardel Exp
+   *
+   * Schmid clock support
+   *
+***************
+*** 58,71 ****
+  #define   WS_MEST	0x04
+  #define WS_LEAP		0x10
+  
+! static unsigned LONG cvt_schmid();
+  
+  clockformat_t clock_schmid =
+  {
+    cvt_schmid,			/* Schmid conversion */
+    syn_simple,			/* easy time stamps */
+!   (unsigned LONG (*)())0,	/* not direct PPS monitoring */
+!   (unsigned LONG (*)())0,	/* no time code synthesizer monitoring */
+    (void *)0,			/* conversion configuration */
+    "Schmid",			/* Schmid receiver */
+    12,				/* binary data buffer */
+--- 58,71 ----
+  #define   WS_MEST	0x04
+  #define WS_LEAP		0x10
+  
+! static u_long cvt_schmid();
+  
+  clockformat_t clock_schmid =
+  {
+    cvt_schmid,			/* Schmid conversion */
+    syn_simple,			/* easy time stamps */
+!   (u_long (*)())0,		/* not direct PPS monitoring */
+!   (u_long (*)())0,		/* no time code synthesizer monitoring */
+    (void *)0,			/* conversion configuration */
+    "Schmid",			/* Schmid receiver */
+    12,				/* binary data buffer */
+***************
+*** 77,83 ****
+  };
+  
+  
+! static unsigned LONG
+  cvt_schmid(buffer, size, format, clock)
+    register unsigned char *buffer;
+    register int            size;
+--- 77,83 ----
+  };
+  
+  
+! static u_long
+  cvt_schmid(buffer, size, format, clock)
+    register unsigned char *buffer;
+    register int            size;
+***************
+*** 166,172 ****
+  /*
+   * History:
+   *
+!  * clk_schmid.c,v
+   * Revision 3.15  1994/05/12  12:34:48  kardel
+   * data type cleanup
+   *
+--- 166,175 ----
+  /*
+   * History:
+   *
+!  * clk_schmid.c,v
+!  * Revision 3.16  1994/05/30  10:20:03  kardel
+!  * LONG cleanup
+!  *
+   * Revision 3.15  1994/05/12  12:34:48  kardel
+   * data type cleanup
+   *
+diff -c parse/clk_trimble.c:1.1.1.4 parse/clk_trimble.c:3.10
+*** parse/clk_trimble.c:1.1.1.4	Sat Jun 11 23:47:55 1994
+--- parse/clk_trimble.c	Sat Jun 11 23:47:55 1994
+***************
+*** 1,6 ****
+  #if defined(REFCLOCK) && (defined(PARSE) || defined(PARSEPPS)) && defined(CLOCK_TRIMSV6)
+  /*
+!  * /src/NTP/REPOSITORY/v3/parse/clk_trimble.c,v 3.9 1994/02/02 17:45:27 kardel Exp
+   *
+   * Trimble SV6 clock support
+   */
+--- 1,6 ----
+  #if defined(REFCLOCK) && (defined(PARSE) || defined(PARSEPPS)) && defined(CLOCK_TRIMSV6)
+  /*
+!  * /src/NTP/REPOSITORY/v3/parse/clk_trimble.c,v 3.10 1994/05/30 10:20:05 kardel Exp
+   *
+   * Trimble SV6 clock support
+   */
+***************
+*** 38,50 ****
+    0
+  };
+  
+! static unsigned LONG cvt_trimsv6();
+  
+  clockformat_t clock_trimsv6 =
+! { cvt_trimsv6,		/* Trimble conversion */
+    syn_simple,			/* easy time stamps for RS232 (fallback) */
+    pps_simple,			/* easy PPS monitoring */
+!   (unsigned LONG (*)())0,	/* no time code synthesizer monitoring */
+    (void *)&trimsv6_fmt,		/* conversion configuration */
+    "Trimble SV6",
+    37,				/* string buffer */
+--- 38,50 ----
+    0
+  };
+  
+! static u_long cvt_trimsv6();
+  
+  clockformat_t clock_trimsv6 =
+! { cvt_trimsv6,			/* Trimble conversion */
+    syn_simple,			/* easy time stamps for RS232 (fallback) */
+    pps_simple,			/* easy PPS monitoring */
+!   (u_long (*)())0,		/* no time code synthesizer monitoring */
+    (void *)&trimsv6_fmt,		/* conversion configuration */
+    "Trimble SV6",
+    37,				/* string buffer */
+***************
+*** 55,61 ****
+    '\0'
+  };
+  
+! static unsigned LONG
+  cvt_trimsv6(buffer, size, format, clock)
+    register char          *buffer;
+    register int            size;
+--- 55,61 ----
+    '\0'
+  };
+  
+! static u_long
+  cvt_trimsv6(buffer, size, format, clock)
+    register char          *buffer;
+    register int            size;
+***************
+*** 62,68 ****
+    register struct format *format;
+    register clocktime_t   *clock;
+  {
+!   LONG gpsfix;
+    u_char calc_csum = 0;
+    long   recv_csum;
+    int	 i;
+--- 62,68 ----
+    register struct format *format;
+    register clocktime_t   *clock;
+  {
+!   long gpsfix;
+    u_char calc_csum = 0;
+    long   recv_csum;
+    int	 i;
+***************
+*** 105,111 ****
+  /*
+   * History:
+   *
+!  * clk_trimble.c,v
+   * Revision 3.9  1994/02/02  17:45:27  kardel
+   * rcs ids fixed
+   *
+--- 105,114 ----
+  /*
+   * History:
+   *
+!  * clk_trimble.c,v
+!  * Revision 3.10  1994/05/30  10:20:05  kardel
+!  * LONG cleanup
+!  *
+   * Revision 3.9  1994/02/02  17:45:27  kardel
+   * rcs ids fixed
+   *
+diff -c parse/parse.c:1.1.1.12 parse/parse.c:3.27
+*** parse/parse.c:1.1.1.12	Sat Jun 11 23:47:56 1994
+--- parse/parse.c	Sat Jun 11 23:47:56 1994
+***************
+*** 1,8 ****
+  #if defined(REFCLOCK) && (defined(PARSE) || defined(PARSEPPS))
+  /*
+!  * /src/NTP/REPOSITORY/v3/parse/parse.c,v 3.25 1994/05/12 12:49:12 kardel Exp
+   *  
+!  * parse.c,v 3.25 1994/05/12 12:49:12 kardel Exp
+   *
+   * Parser module for reference clock
+   *
+--- 1,8 ----
+  #if defined(REFCLOCK) && (defined(PARSE) || defined(PARSEPPS))
+  /*
+!  * /src/NTP/REPOSITORY/v3/parse/parse.c,v 3.27 1994/06/01 08:18:33 kardel Exp
+   *  
+!  * parse.c,v 3.27 1994/06/01 08:18:33 kardel Exp
+   *
+   * Parser module for reference clock
+   *
+***************
+*** 64,70 ****
+  extern clockformat_t *clockformats[];
+  extern unsigned short nformats;
+  
+! static unsigned LONG timepacket();
+  
+  /*
+   * strings support usually not in kernel - duplicated, but what the heck
+--- 64,70 ----
+  extern clockformat_t *clockformats[];
+  extern unsigned short nformats;
+  
+! static u_long timepacket();
+  
+  /*
+   * strings support usually not in kernel - duplicated, but what the heck
+***************
+*** 120,128 ****
+        delta.tv_usec += 1000000;
+      }
+  #else
+!   extern LONG tstouslo[];
+!   extern LONG tstousmid[];
+!   extern LONG tstoushi[];
+  
+    l_fp delt;
+  
+--- 120,128 ----
+        delta.tv_usec += 1000000;
+      }
+  #else
+!   extern long tstouslo[];
+!   extern long tstousmid[];
+!   extern long tstoushi[];
+  
+    l_fp delt;
+  
+***************
+*** 539,544 ****
+--- 539,545 ----
+    /*
+     * we need to clean up certain flags for the next round
+     */
++   parseprintf(DD_PARSE, ("parse_iodone: DONE\n"));
+    parseio->parse_dtime.parse_state = 0; /* no problems with ISRs */
+  }
+  
+***************
+*** 552,558 ****
+  time_t
+  parse_to_unixtime(clock, cvtrtc)
+    register clocktime_t   *clock;
+!   register unsigned LONG *cvtrtc;
+  {
+  #define SETRTC(_X_)	{ if (cvtrtc) *cvtrtc = (_X_); }
+    static int days_of_month[] = 
+--- 553,559 ----
+  time_t
+  parse_to_unixtime(clock, cvtrtc)
+    register clocktime_t   *clock;
+!   register u_long *cvtrtc;
+  {
+  #define SETRTC(_X_)	{ if (cvtrtc) *cvtrtc = (_X_); }
+    static int days_of_month[] = 
+***************
+*** 648,654 ****
+  int
+  Stoi(s, zp, cnt)
+    char *s;
+!   LONG *zp;
+    int cnt;
+  {
+    char *b = s;
+--- 649,655 ----
+  int
+  Stoi(s, zp, cnt)
+    char *s;
+!   long *zp;
+    int cnt;
+  {
+    char *b = s;
+***************
+*** 712,735 ****
+    return !*m;
+  }
+  
+! unsigned LONG
+  updatetimeinfo(parseio, t, usec, flags)
+    register parse_t         *parseio;
+    register time_t         t;
+!   register unsigned LONG  usec;
+!   register unsigned LONG  flags;
+  {
+!   register LONG usecoff;
+!   register LONG mean;
+!   LONG delta[PARSE_DELTA];
+  
+  #ifdef PARSEKERNEL
+      usecoff = (t - parseio->parse_dtime.parse_stime.tv.tv_sec) * 1000000
+        - parseio->parse_dtime.parse_stime.tv.tv_usec + usec;
+  #else
+!     extern LONG tstouslo[];
+!     extern LONG tstousmid[];
+!     extern LONG tstoushi[];
+  
+      TSFTOTVU(parseio->parse_dtime.parse_stime.fp.l_uf, usecoff);
+      usecoff  = -usecoff;
+--- 713,736 ----
+    return !*m;
+  }
+  
+! u_long
+  updatetimeinfo(parseio, t, usec, flags)
+    register parse_t         *parseio;
+    register time_t         t;
+!   register u_long  usec;
+!   register u_long  flags;
+  {
+!   register long usecoff;
+!   register long mean;
+!   long delta[PARSE_DELTA];
+  
+  #ifdef PARSEKERNEL
+      usecoff = (t - parseio->parse_dtime.parse_stime.tv.tv_sec) * 1000000
+        - parseio->parse_dtime.parse_stime.tv.tv_usec + usec;
+  #else
+!     extern long tstouslo[];
+!     extern long tstousmid[];
+!     extern long tstoushi[];
+  
+      TSFTOTVU(parseio->parse_dtime.parse_stime.fp.l_uf, usecoff);
+      usecoff  = -usecoff;
+***************
+*** 758,764 ****
+  	  {			/* Yes - it's slow sort */
+  	    if (delta[s] > delta[k]) 
+  	      {
+! 		register LONG tmp;
+  		
+  		tmp      = delta[k];
+  		delta[k] = delta[s];
+--- 759,765 ----
+  	  {			/* Yes - it's slow sort */
+  	    if (delta[s] > delta[k]) 
+  	      {
+! 		register long tmp;
+  		
+  		tmp      = delta[k];
+  		delta[k] = delta[s];
+***************
+*** 774,782 ****
+         */
+        while ((n - i) > 8)
+  	{
+! 	  register LONG top = delta[n-1];
+! 	  register LONG mid = delta[(n+i)>>1];
+! 	  register LONG low = delta[i];
+  	  
+  	  if ((top - mid) > (mid - low))
+  	    {
+--- 775,783 ----
+         */
+        while ((n - i) > 8)
+  	{
+! 	  register long top = delta[n-1];
+! 	  register long mid = delta[(n+i)>>1];
+! 	  register long low = delta[i];
+  	  
+  	  if ((top - mid) > (mid - low))
+  	    {
+***************
+*** 858,864 ****
+    register parse_t *parseio;
+    register timestamp_t *ts;
+    register struct format *format;
+!   register unsigned LONG why;
+  {
+    parseio->parse_dtime.parse_stime = *ts;
+  }
+--- 859,865 ----
+    register parse_t *parseio;
+    register timestamp_t *ts;
+    register struct format *format;
+!   register u_long why;
+  {
+    parseio->parse_dtime.parse_stime = *ts;
+  }
+***************
+*** 869,875 ****
+   * handle a pps time stamp
+   */
+  /*ARGSUSED*/
+! unsigned LONG
+  pps_simple(parseio, status, ptime)
+    register parse_t *parseio;
+    register int status;
+--- 870,876 ----
+   * handle a pps time stamp
+   */
+  /*ARGSUSED*/
+! u_long
+  pps_simple(parseio, status, ptime)
+    register parse_t *parseio;
+    register int status;
+***************
+*** 886,892 ****
+   *
+   * process a data packet
+   */
+! static unsigned LONG
+  timepacket(parseio)
+    register parse_t *parseio;
+  {
+--- 887,893 ----
+   *
+   * process a data packet
+   */
+! static u_long
+  timepacket(parseio)
+    register parse_t *parseio;
+  {
+***************
+*** 893,900 ****
+    register int k;
+    register unsigned short format;
+    register time_t t;
+!   register unsigned LONG cvtsum = 0;/* accumulated CVT_FAIL errors */
+!   unsigned LONG cvtrtc;		/* current conversion result */
+    clocktime_t clock;
+    
+    format = parseio->parse_lformat;
+--- 894,901 ----
+    register int k;
+    register unsigned short format;
+    register time_t t;
+!   register u_long cvtsum = 0;/* accumulated CVT_FAIL errors */
+!   u_long cvtrtc;		/* current conversion result */
+    clocktime_t clock;
+    
+    format = parseio->parse_lformat;
+***************
+*** 1164,1170 ****
+  /*
+   * History:
+   *
+!  * parse.c,v
+   * Revision 3.25  1994/05/12  12:49:12  kardel
+   * printf fmt/arg cleanup
+   *
+--- 1165,1177 ----
+  /*
+   * History:
+   *
+!  * parse.c,v
+!  * Revision 3.27  1994/06/01  08:18:33  kardel
+!  * more debug info
+!  *
+!  * Revision 3.26  1994/05/30  10:20:07  kardel
+!  * LONG cleanup
+!  *
+   * Revision 3.25  1994/05/12  12:49:12  kardel
+   * printf fmt/arg cleanup
+   *
+diff -c parse/parsesolaris.c:1.1.1.8 parse/parsesolaris.c:3.16
+*** parse/parsesolaris.c:1.1.1.8	Sat Jun 11 23:47:58 1994
+--- parse/parsesolaris.c	Sat Jun 11 23:47:58 1994
+***************
+*** 1,7 ****
+  /*
+!  * /src/NTP/REPOSITORY/v3/parse/parsesolaris.c,v 3.15 1994/02/15 22:20:51 kardel Exp
+   *  
+!  * parsesolaris.c,v 3.15 1994/02/15 22:20:51 kardel Exp
+   *
+   * STREAMS module for reference clocks
+   * (SunOS5.x - not fully tested - buyer beware ! - OS KILLERS may still be
+--- 1,7 ----
+  /*
+!  * /src/NTP/REPOSITORY/v3/parse/parsesolaris.c,v 3.16 1994/05/30 09:57:40 kardel Exp
+   *  
+!  * parsesolaris.c,v 3.16 1994/05/30 09:57:40 kardel Exp
+   *
+   * STREAMS module for reference clocks
+   * (SunOS5.x - not fully tested - buyer beware ! - OS KILLERS may still be
+***************
+*** 19,25 ****
+   */
+  
+  #ifndef lint
+! static char rcsid[] = "parsesolaris.c,v 3.15 1994/02/15 22:20:51 kardel Exp";
+  #endif
+  
+  /*
+--- 19,25 ----
+   */
+  
+  #ifndef lint
+! static char rcsid[] = "parsesolaris.c,v 3.16 1994/05/30 09:57:40 kardel Exp";
+  #endif
+  
+  /*
+***************
+*** 139,145 ****
+  /*ARGSUSED*/
+  int _init(void)
+  {
+!   static char revision[] = "3.15";
+    char *s, *S, *t;
+    
+    /*
+--- 139,145 ----
+  /*ARGSUSED*/
+  int _init(void)
+  {
+!   static char revision[] = "3.16";
+    char *s, *S, *t;
+    
+    /*
+***************
+*** 401,406 ****
+--- 401,411 ----
+    parsebusy++;
+    
+    q->q_ptr = (caddr_t)kmem_alloc(sizeof(parsestream_t), KM_SLEEP);
++   if (q->q_ptr == (caddr_t)0)
++     {
++       return ENOMEM;
++     }
++ 
+    parseprintf(DD_OPEN,("parse: OPEN - parse area q=%x, q->q_ptr=%x\n", q, q->q_ptr)); 
+    SAFE_WR(q)->q_ptr = q->q_ptr;
+    parseprintf(DD_OPEN,("parse: OPEN - WQ parse area q=%x, q->q_ptr=%x\n", SAFE_WR(q), SAFE_WR(q)->q_ptr)); 
+***************
+*** 938,966 ****
+         */
+        szs = (struct savedzsops *) kmem_alloc(sizeof(struct savedzsops), KM_SLEEP);
+  
+!       parsestream->parse_data   = (void *)szs;
+  
+!       mutex_enter(zs->zs_excl);
+  
+!       parsestream->parse_dqueue = q; /* remember driver */
+  
+!       szs->zsops            = *zs->zs_ops;
+!       szs->zsops.zsop_xsint = (void (*)())zs_xsisr; /* place our bastard */
+!       szs->oldzsops         = zs->zs_ops;
+!       emergencyzs           = zs->zs_ops;
+!       
+!       zs->zs_ops = &szs->zsops; /* hook it up */
+!       /*
+!        * XXX: this is usually done via zsopinit() 
+!        * - have yet to find a way to call that routine
+!        */
+!       zs->zs_xsint          = (void (*)())zs_xsisr;
+!       
+!       mutex_exit(zs->zs_excl);
+  
+!       parseprintf(DD_INSTALL, ("init_zs_linemon: CD monitor installed\n"));
+  
+!       return 1;
+      }
+  }
+  
+--- 943,980 ----
+         */
+        szs = (struct savedzsops *) kmem_alloc(sizeof(struct savedzsops), KM_SLEEP);
+  
+!       if (szs == (struct savedzsops *)0)
+! 	{
+!           parseprintf(DD_INSTALL, ("init_zs_linemon: CD monitor NOT installed - no memory\n"));
+  
+! 	  return 0;
+! 	}
+!       else
+! 	{
+! 	  parsestream->parse_data   = (void *)szs;
+  
+! 	  mutex_enter(zs->zs_excl);
+  
+! 	  parsestream->parse_dqueue = q; /* remember driver */
+! 
+! 	  szs->zsops            = *zs->zs_ops;
+! 	  szs->zsops.zsop_xsint = (void (*)())zs_xsisr; /* place our bastard */
+! 	  szs->oldzsops         = zs->zs_ops;
+! 	  emergencyzs           = zs->zs_ops;
+! 	  
+! 	  zs->zs_ops = &szs->zsops; /* hook it up */
+! 	  /*
+! 	   * XXX: this is usually done via zsopinit() 
+! 	   * - have yet to find a way to call that routine
+! 	   */
+! 	  zs->zs_xsint          = (void (*)())zs_xsisr;
+! 	  
+! 	  mutex_exit(zs->zs_excl);
+  
+!           parseprintf(DD_INSTALL, ("init_zs_linemon: CD monitor installed\n"));
+  
+!           return 1;
+! 	}
+      }
+  }
+  
+***************
+*** 1189,1195 ****
+  /*
+   * History:
+   *
+!  * parsesolaris.c,v
+   * Revision 3.15  1994/02/15  22:20:51  kardel
+   * rcsid fixed
+   *
+--- 1203,1212 ----
+  /*
+   * History:
+   *
+!  * parsesolaris.c,v
+!  * Revision 3.16  1994/05/30  09:57:40  kardel
+!  * kmem_alloc checking
+!  *
+   * Revision 3.15  1994/02/15  22:20:51  kardel
+   * rcsid fixed
+   *
+diff -c parse/parsestreams.c:1.1.1.11 parse/parsestreams.c:3.22
+*** parse/parsestreams.c:1.1.1.11	Sat Jun 11 23:47:59 1994
+--- parse/parsestreams.c	Sat Jun 11 23:47:59 1994
+***************
+*** 1,7 ****
+  /*
+!  * /src/NTP/REPOSITORY/v3/parse/parsestreams.c,v 3.19 1994/02/24 16:33:54 kardel Exp
+   *  
+!  * parsestreams.c,v 3.19 1994/02/24 16:33:54 kardel Exp
+   *
+   * STREAMS module for reference clocks
+   * (SunOS4.x)
+--- 1,7 ----
+  /*
+!  * /src/NTP/REPOSITORY/v3/parse/parsestreams.c,v 3.22 1994/06/01 10:41:16 kardel Exp
+   *  
+!  * parsestreams.c,v 3.22 1994/06/01 10:41:16 kardel Exp
+   *
+   * STREAMS module for reference clocks
+   * (SunOS4.x)
+***************
+*** 16,22 ****
+   */
+  
+  #ifndef lint
+! static char rcsid[] = "parsestreams.c,v 3.19 1994/02/24 16:33:54 kardel Exp";
+  #endif
+  
+  #include "sys/types.h"
+--- 16,22 ----
+   */
+  
+  #ifndef lint
+! static char rcsid[] = "parsestreams.c,v 3.22 1994/06/01 10:41:16 kardel Exp";
+  #endif
+  
+  #include "sys/types.h"
+***************
+*** 195,201 ****
+  	}
+        else
+          {
+! 	  static char revision[] = "3.19";
+  	  char *s, *S, *t;
+  	  
+  	  strncpy(ifm->f_name, mname, FMNAMESZ);
+--- 195,201 ----
+  	}
+        else
+          {
+! 	  static char revision[] = "3.22";
+  	  char *s, *S, *t;
+  	  
+  	  strncpy(ifm->f_name, mname, FMNAMESZ);
+***************
+*** 493,498 ****
+--- 493,503 ----
+  #endif
+    
+    q->q_ptr = (caddr_t)kmem_alloc(sizeof(parsestream_t));
++   if (q->q_ptr == (caddr_t)0)
++     {
++       parseprintf(DD_OPEN,("parse: OPEN - FAILED - no memory\n")); 
++       return OPENFAIL;
++     }
+    WR(q)->q_ptr = q->q_ptr;
+    
+    parse = (parsestream_t *) q->q_ptr;
+***************
+*** 1022,1045 ****
+         */
+        szs = (struct savedzsops *) kmem_alloc(sizeof(struct savedzsops));
+  
+!       parsestream->parse_data   = (void *)szs;
+  
+!       s = splhigh();
+  
+!       parsestream->parse_dqueue = q; /* remember driver */
+  
+!       szs->zsops            = *zs->zs_ops;
+!       szs->zsops.zsop_xsint = (int (*)())zs_xsisr; /* place our bastard */
+!       szs->oldzsops         = zs->zs_ops;
+!       emergencyzs           = zs->zs_ops;
+!       
+!       zsopinit(zs, &szs->zsops); /* hook it up */
+!       
+!       (void) splx(s);
+  
+!       parseprintf(DD_INSTALL, ("init_zs_linemon: CD monitor installed\n"));
+  
+!       return 1;
+      }
+  }
+  
+--- 1027,1059 ----
+         */
+        szs = (struct savedzsops *) kmem_alloc(sizeof(struct savedzsops));
+  
+!       if (szs == (struct savedzsops *)0)
+! 	{
+! 	  parseprintf(DD_INSTALL, ("init_zs_linemon: CD monitor NOT installed - no memory\n"));
+  
+! 	  return 0;
+! 	}
+!       else
+! 	{
+! 	  parsestream->parse_data   = (void *)szs;
+  
+! 	  s = splhigh();
+  
+! 	  parsestream->parse_dqueue = q; /* remember driver */
+! 
+! 	  szs->zsops            = *zs->zs_ops;
+! 	  szs->zsops.zsop_xsint = (int (*)())zs_xsisr; /* place our bastard */
+! 	  szs->oldzsops         = zs->zs_ops;
+! 	  emergencyzs           = zs->zs_ops;
+! 	  
+! 	  zsopinit(zs, &szs->zsops); /* hook it up */
+! 	  
+! 	  (void) splx(s);
+  
+! 	  parseprintf(DD_INSTALL, ("init_zs_linemon: CD monitor installed\n"));
+  
+! 	  return 1;
+! 	}
+      }
+  }
+  
+***************
+*** 1133,1139 ****
+        /*
+         * logical state
+         */
+!       status = cd_invert ? (zsstatus & (ZSRR0_CD|ZSRR0_SYNC)) == 0 : (zsstatus & (ZSRR0_CD|ZSRR0_SYNC)) != 0;
+  
+  #ifdef PPS_SYNC
+        if (status)
+--- 1147,1153 ----
+        /*
+         * logical state
+         */
+!       status = cd_invert ? (zsstatus & ZSRR0_SYNC) == 0 : (zsstatus & ZSRR0_SYNC) != 0;
+  
+  #ifdef PPS_SYNC
+        if (status)
+***************
+*** 1285,1293 ****
+  /*
+   * History:
+   *
+!  * parsestreams.c,v
+   * Revision 3.19  1994/02/24  16:33:54  kardel
+!  * CD events can also be posted on sync flag
+   *
+   * Revision 3.18  1994/02/24  14:12:58  kardel
+   * initial PPS_SYNC support version
+--- 1299,1316 ----
+  /*
+   * History:
+   *
+!  * parsestreams.c,v
+!  * Revision 3.22  1994/06/01  10:41:16  kardel
+!  * CD seems to happen on ZSRR0_SYNC
+!  *
+!  * Revision 3.21  1994/06/01  08:18:57  kardel
+!  * look at CD only
+!  *
+!  * Revision 3.20  1994/05/30  09:57:43  kardel
+!  * kmem_alloc checking
+!  *
+   * Revision 3.19  1994/02/24  16:33:54  kardel
+!  * CD events can olso be posted on sync flag
+   *
+   * Revision 3.18  1994/02/24  14:12:58  kardel
+   * initial PPS_SYNC support version
+diff -c refclocks/rclk.DATUM:1.1.1.1 refclocks/rclk.DATUM:1.2
+*** refclocks/rclk.DATUM:1.1.1.1	Sat Jun 11 23:48:21 1994
+--- refclocks/rclk.DATUM	Sat Jun 11 23:48:21 1994
+***************
+*** 10,21 ****
+  	;;
+    check)
+  	if check "$RCONFIG" '$0 ~ /DATUM/'; then
+! 	  echo "DATUM	- Datum Programmable Time System"
+  	fi
+  	;;
+    config)
+  	if check "$REFCONF" '$0 ~ /DATUM/' ||
+! 	   ( [ ! "$REFCONF" ] && query "Include DATUM reference support (DATUM)" y); then
+  	  echo "-DDATUM" >> $RCONFIG
+  	fi
+  	;;
+--- 10,21 ----
+  	;;
+    check)
+  	if check "$RCONFIG" '$0 ~ /DATUM/'; then
+! 	  echo "DATUM		- Datum Programmable Time System"
+  	fi
+  	;;
+    config)
+  	if check "$REFCONF" '$0 ~ /DATUM/' ||
+! 	   ( [ ! "$REFCONF" ] && query "Include DATUM reference support (DATUM)" n); then
+  	  echo "-DDATUM" >> $RCONFIG
+  	fi
+  	;;
+diff -c xntpd/ntp_loopfilter.c:1.1.1.41 xntpd/ntp_loopfilter.c:3.50
+*** xntpd/ntp_loopfilter.c:1.1.1.41	Sat Jun 11 23:49:03 1994
+--- xntpd/ntp_loopfilter.c	Sat Jun 11 23:49:03 1994
+***************
+*** 776,781 ****
+--- 776,782 ----
+  	l_fp *lfp_value;
+  	int int_value;
+  {
++ 	int bad_driftcomp = 0;
+  	s_fp tmp;
+  #if defined(KERNEL_PLL)
+  	struct timex ntv;
+***************
+*** 788,834 ****
+  			syslog(LOG_ERR,
+  			    "loop_config: frequency offset %s in ntp.conf file is too large",
+  			    fptoa(tmp, 5));
+  		} else {
+  			drift_comp = tmp;
+  
+  #if defined(KERNEL_PLL)
+! 			/*
+! 			 * If the phase-lock code is implemented in the
+! 			 * kernel, give the time_constant and saved
+! 			 * frequency offset to the kernel. If not, no
+! 			 * harm is done.
+! 	 		 */
+! 			pll_control = 1;
+! 			pll_status = STA_PLL | STA_PPSFREQ;
+! 			ntv.modes = MOD_BITS | MOD_FREQUENCY;
+! 			ntv.offset = 0;
+! 			ntv.freq = drift_comp;
+! 			ntv.maxerror = NTP_MAXDISPERSE;
+! 			ntv.esterror = NTP_MAXDISPERSE;
+! 			ntv.status = pll_status | STA_UNSYNC;
+! 			ntv.constant = time_constant;
+! 			newsigsys.sv_handler = pll_trap;
+! 			newsigsys.sv_mask = 0;
+! 			newsigsys.sv_flags = 0;
+! 			if ((sigvec(SIGSYS, &newsigsys, &sigsys)))
+! 				syslog(LOG_ERR,
+! 				   "sigvec() fails to save SIGSYS trap: %m\n");
+! 			(void)ntp_adjtime(&ntv);
+! 			if ((sigvec(SIGSYS, &sigsys, (struct sigvec *)NULL)))
+! 				syslog(LOG_ERR,
+! 				    "sigvec() fails to restore SIGSYS trap: %m\n");
+! 			if (pll_control)
+! 				syslog(LOG_NOTICE,
+! 				    "using kernel phase-lock loop %04x",
+! 				    ntv.status);
+! 			else
+! 				syslog(LOG_NOTICE,
+! 				    "using xntpd phase-lock loop");
+  #endif /* KERNEL_PLL */
+  
+! 		}
+! 		break;
+! 	
+  	case LOOP_PPSDELAY:
+  		pps_delay = *lfp_value;
+  		break;
+--- 789,836 ----
+  			syslog(LOG_ERR,
+  			    "loop_config: frequency offset %s in ntp.conf file is too large",
+  			    fptoa(tmp, 5));
++ 			bad_driftcomp = 1;
+  		} else {
+  			drift_comp = tmp;
++ 		}
+  
+  #if defined(KERNEL_PLL)
+! 		/*
+! 		 * If the phase-lock code is implemented in the
+! 		 * kernel, give the time_constant and saved
+! 		 * frequency offset to the kernel. If not, no
+! 		 * harm is done.
+! 		 */
+! 		pll_control = 1;
+! 		pll_status = STA_PLL | STA_PPSFREQ;
+! 		ntv.modes = MOD_BITS | ((bad_driftcomp) ? 0 : MOD_FREQUENCY);
+! 		ntv.offset = 0;
+! 		ntv.freq = bad_driftcomp ? 0 : drift_comp;
+! 		ntv.maxerror = NTP_MAXDISPERSE;
+! 		ntv.esterror = NTP_MAXDISPERSE;
+! 		ntv.status = pll_status | STA_UNSYNC;
+! 		ntv.constant = time_constant;
+! 		newsigsys.sv_handler = pll_trap;
+! 		newsigsys.sv_mask = 0;
+! 		newsigsys.sv_flags = 0;
+! 		if ((sigvec(SIGSYS, &newsigsys, &sigsys)))
+! 			syslog(LOG_ERR,
+! 			   "sigvec() fails to save SIGSYS trap: %m\n");
+! 		(void)ntp_adjtime(&ntv);
+! 		if ((sigvec(SIGSYS, &sigsys, (struct sigvec *)NULL)))
+! 			syslog(LOG_ERR,
+! 			    "sigvec() fails to restore SIGSYS trap: %m\n");
+! 		if (pll_control)
+! 			syslog(LOG_NOTICE,
+! 			    "using kernel phase-lock loop %04x",
+! 			    ntv.status);
+! 		else
+! 			syslog(LOG_NOTICE,
+! 			    "using xntpd phase-lock loop");
+  #endif /* KERNEL_PLL */
+  
+! 	        break;
+!       
+  	case LOOP_PPSDELAY:
+  		pps_delay = *lfp_value;
+  		break;
+diff -c xntpd/ntp_request.c:1.1.1.22 xntpd/ntp_request.c:3.24
+*** xntpd/ntp_request.c:1.1.1.22	Sat Jun 11 23:49:07 1994
+--- xntpd/ntp_request.c	Sat Jun 11 23:49:07 1994
+***************
+*** 2189,2195 ****
+  }
+  
+  
+- #ifdef KERNEL_PLL
+  /*
+   * get_kernel_info - get kernel pll/pps information
+   */
+--- 2189,2194 ----
+***************
+*** 2202,2209 ****
+  	register struct info_kernel *ik;
+  	struct timex ntx;
+  
+! 	if (!pll_control)
+  		return;
+  	memset((char *)&ntx, 0, sizeof(ntx));
+  	(void)ntp_adjtime(&ntx);
+  
+--- 2201,2213 ----
+  	register struct info_kernel *ik;
+  	struct timex ntx;
+  
+! #ifdef KERNEL_PLL
+! 	if (!pll_control) {
+! #endif
+! 		req_ack(srcadr, inter, inpkt, INFO_ERR_NODATA);
+  		return;
++ #ifdef KERNEL_PLL
++ 	}
+  	memset((char *)&ntx, 0, sizeof(ntx));
+  	(void)ntp_adjtime(&ntx);
+  
+***************
+*** 2236,2243 ****
+  	
+  	(void) more_pkt();
+  	flush_pkt();
+- }
+  #endif /* KERNEL_PLL */
+  
+  
+  #ifdef REFCLOCK
+--- 2240,2247 ----
+  	
+  	(void) more_pkt();
+  	flush_pkt();
+  #endif /* KERNEL_PLL */
++ }
+  
+  
+  #ifdef REFCLOCK
+diff -c xntpd/refclock_parse.c:1.1.1.15 xntpd/refclock_parse.c:3.61
+*** xntpd/refclock_parse.c:1.1.1.15	Sat Jun 11 23:49:20 1994
+--- xntpd/refclock_parse.c	Sat Jun 11 23:49:20 1994
+***************
+*** 1,8 ****
+  #if defined(REFCLOCK) && (defined(PARSE) || defined(PARSEPPS))
+  /*
+!  * /src/NTP/REPOSITORY/v3/xntpd/refclock_parse.c,v 3.59 1994/05/23 16:29:27 kardel Exp
+   *
+!  * refclock_parse.c,v 3.59 1994/05/23 16:29:27 kardel Exp
+   *
+   * generic reference clock driver for receivers
+   *
+--- 1,8 ----
+  #if defined(REFCLOCK) && (defined(PARSE) || defined(PARSEPPS))
+  /*
+!  * /src/NTP/REPOSITORY/v3/xntpd/refclock_parse.c,v 3.61 1994/05/30 21:01:07 kardel Exp
+   *
+!  * refclock_parse.c,v 3.61 1994/05/30 21:01:07 kardel Exp
+   *
+   * generic reference clock driver for receivers
+   *
+***************
+*** 130,136 ****
+  #include "parse.h"
+  
+  #if !defined(NO_SCCSID) && !defined(lint) && !defined(__GNUC__)
+! static char rcsid[]="refclock_parse.c,v 3.59 1994/05/23 16:29:27 kardel Exp";
+  #endif
+  
+  /**===========================================================================
+--- 130,136 ----
+  #include "parse.h"
+  
+  #if !defined(NO_SCCSID) && !defined(lint) && !defined(__GNUC__)
+! static char rcsid[]="refclock_parse.c,v 3.61 1994/05/30 21:01:07 kardel Exp";
+  #endif
+  
+  /**===========================================================================
+***************
+*** 1517,1531 ****
+    struct parseunit *parse = (struct parseunit *)rbufp->recv_srcclock;
+    register int count;
+    register char *s;
+    /*
+     * eat all characters, parsing then and feeding complete samples
+     */
+    count = rbufp->recv_length;
+    s = rbufp->recv_buffer;
+  
+    while (count--)
+      {
+!       if (parse_ioread(&parse->parseio, *s++, &rbufp->recv_time))
+  	{
+  	  /*
+  	   * got something good to eat
+--- 1517,1533 ----
+    struct parseunit *parse = (struct parseunit *)rbufp->recv_srcclock;
+    register int count;
+    register char *s;
++   timestamp_t ts;
+    /*
+     * eat all characters, parsing then and feeding complete samples
+     */
+    count = rbufp->recv_length;
+    s = rbufp->recv_buffer;
++   ts.fp = rbufp->recv_time;
+  
+    while (count--)
+      {
+!       if (parse_ioread(&parse->parseio, *s++, &ts))
+  	{
+  	  /*
+  	   * got something good to eat
+***************
+*** 2857,2863 ****
+        sprintf(tt, "refclock_iomode=\"%s\"", parse->binding->bd_description);
+  
+        tt = add_var(&out->kv_list, 128, RO);
+!       sprintf(tt, "refclock_driver_version=\"refclock_parse.c,v 3.59 1994/05/23 16:29:27 kardel Exp\"");
+  
+        out->lencode       = strlen(outstatus);
+        out->lastcode      = outstatus;
+--- 2859,2865 ----
+        sprintf(tt, "refclock_iomode=\"%s\"", parse->binding->bd_description);
+  
+        tt = add_var(&out->kv_list, 128, RO);
+!       sprintf(tt, "refclock_driver_version=\"refclock_parse.c,v 3.61 1994/05/30 21:01:07 kardel Exp\"");
+  
+        out->lencode       = strlen(outstatus);
+        out->lastcode      = outstatus;
+***************
+*** 3441,3447 ****
+  /*
+   * History:
+   *
+!  * refclock_parse.c,v
+   * Revision 3.59  1994/05/23  16:29:27  kardel
+   * IGEL clock - Trimble update
+   *
+--- 3443,3455 ----
+  /*
+   * History:
+   *
+!  * refclock_parse.c,v
+!  * Revision 3.61  1994/05/30  21:01:07  kardel
+!  * parameter fixes
+!  *
+!  * Revision 3.60  1994/05/30  09:53:55  kardel
+!  * 3.3ww update
+!  *
+   * Revision 3.59  1994/05/23  16:29:27  kardel
+   * IGEL clock - Trimble update
+   *
+-- 
+	   Frank Kardel (kardel@informatik.uni-erlangen.de)
+    All SCSI disks will from now on be required to send an email
+         notice 24 hours prior to complete hardware failure!
+

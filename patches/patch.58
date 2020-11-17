@@ -1,0 +1,2261 @@
+
+Received: from snow-white.ee.udel.edu by huey.udel.edu id aa06924;
+          13 May 94 10:35 EDT
+Received: from louie.udel.edu by snow-white.ee.udel.edu id aa21311;
+          13 May 94 10:31 EDT
+Received: from snow-white.ee.udel.edu by pogo.udel.edu id aa06567;
+          13 May 94 14:30 GMT
+To: mills@udel.edu
+cc: ajit@albert.udel.edu
+Subject: patches
+Date: Fri, 13 May 1994 14:30:02 +0000
+From: Ajit Thyagarajan <ajit@ee.udel.edu>
+Message-ID:  <9405131430.aa06567@pogo.udel.edu>
+
+Dave,
+
+Here are the patches wrt to the "u" version.
+
+I would strongly suggest that you make a backup of the "u" version on
+pogo before applying these patches.
+
+Ajit
+
+
+*** include/ntp.h	Mon May  9 21:14:55 1994
+--- /pogo/ajit/xntp3/include/ntp.h	Wed May 11 13:18:53 1994
+***************
+*** 162,167 ****
+--- 162,168 ----
+  	struct sockaddr_in mask;	/* interface mask */
+  	char name[8];		/* name of interface */
+  	int flags;		/* interface flags */
++ 	int last_ttl;		/* last TTL specified */
+  	LONG received;		/* number of incoming packets */
+  	LONG sent;		/* number of outgoing packets */
+  	LONG notsent;		/* number of send failures */
+***************
+*** 211,216 ****
+--- 212,218 ----
+  	u_char maxpoll;			/* max local host poll interval */
+  	u_char version;			/* version number */
+  	u_char flags;			/* peer flags */
++ 	u_char cast_flags;		/* flags MDF_?CAST */
+  	u_char flash;			/* peer flashers (for maint) */
+  	u_char refclktype;		/* reference clock type */
+  	u_char refclkunit;		/* reference clock unit number */
+***************
+*** 471,476 ****
+--- 473,479 ----
+  #define	recv_srcclock	X_from_where.X_recv_srcclock
+  	struct sockaddr_in srcadr;	/* where packet came from */
+  	struct interface *dstadr;	/* interface datagram arrived thru */
++ 	int fd;				/* fd on which it was received */
+  	l_fp recv_time;			/* time of arrival */
+  	void (*receiver)();		/* routine to receive buffer */
+  	int recv_length;		/* number of octets received */
+***************
+*** 618,627 ****
+--- 621,637 ----
+  	U_LONG firsttime;		/* time structure initialized */
+  	U_LONG count;			/* count we have seen */
+  	U_LONG rmtadr;			/* address of remote host */
++ 	struct interface *interface;	/* interface on which this arrived */
+  	u_short rmtport;		/* remote port last came from */
+  	u_char mode;			/* mode of incoming packet */
+  	u_char version;			/* version of incoming packet */
++ 	u_char cast_flags;		/* flags MDF_?CAST */
+  };
++ 
++ #define	MDF_UCAST	1		/* unicast packet */
++ #define	MDF_MCAST	2		/* multicast packet */
++ #define	MDF_BCAST	4		/* broadcast packet */
++ #define	MDF_LCAST	8		/* local packet */
+  
+  /*
+   * Values used with mon_enabled to indicate reason for enabling monitoring
+*** include/ntp_request.h	Thu May 12 00:54:37 1994
+--- /pogo/ajit/xntp3/include/ntp_request.h	Wed May 11 13:19:03 1994
+***************
+*** 257,262 ****
+--- 257,263 ----
+  #define REQ_GET_KERNEL		38	/* get kernel pll/pps information */
+  #define	REQ_GET_CLKBUGINFO	39	/* get clock debugging info */
+  #define	REQ_SET_PRECISION	41	/* set clock precision */
++ #define	REQ_MON_GETLIST_1	42	/* return data collected by monitor v1*/
+  
+  /*
+   * Flags in the peer information returns
+***************
+*** 582,587 ****
+--- 583,605 ----
+  /*
+   * Structure used for returning monitor data
+   */
++ struct info_monitor_1 {	
++ 	U_LONG lasttime;		/* last packet from this host */
++ 	U_LONG firsttime;		/* first time we received a packet */
++ 	U_LONG lastdrop;	        /* last time we rejected a packet due to client limitation policy */
++ 	U_LONG count;			/* count of packets received */
++ 	U_LONG addr;			/* host address */
++ 	U_LONG daddr;			/* destination host address */
++ 	U_LONG flags;			/* flags about destination */
++ 	u_short port;			/* port number of last reception */
++ 	u_char mode;			/* mode of last packet */
++ 	u_char version;			/* version number of last packet */
++ };
++ 
++ 
++ /*
++  * Structure used for returning monitor data
++  */
+  struct info_monitor {	
+  	U_LONG lasttime;		/* last packet from this host */
+  	U_LONG firsttime;		/* first time we received a packet */
+*** include/ntpd.h	Sun Apr 17 22:39:04 1994
+--- /pogo/ajit/xntp3/include/ntpd.h	Wed May 11 13:19:07 1994
+***************
+*** 66,72 ****
+  extern	void	io_multicast_add P((U_LONG));
+  extern	void	io_multicast_del P((U_LONG));
+  
+! extern	void	sendpkt		P((struct sockaddr_in *, struct interface *, struct pkt *, int));
+  #ifdef HAVE_SIGNALED_IO
+  extern  void	wait_for_signal P((void));
+  extern  void    unblock_io_and_alarm P((void));
+--- 66,72 ----
+  extern	void	io_multicast_add P((U_LONG));
+  extern	void	io_multicast_del P((U_LONG));
+  
+! extern	void	sendpkt		P((struct sockaddr_in *, struct interface *, int, struct pkt *, int));
+  #ifdef HAVE_SIGNALED_IO
+  extern  void	wait_for_signal P((void));
+  extern  void    unblock_io_and_alarm P((void));
+***************
+*** 103,109 ****
+  /* ntp_peer.c */
+  extern	void	init_peer	P((void));
+  extern	struct peer *findexistingpeer P((struct sockaddr_in *, struct peer *));
+! extern	struct peer *findpeer	P((struct sockaddr_in *, struct interface *));
+  extern	struct peer *findpeerbyassoc P((int));
+  extern	struct peer *newpeer	P((struct sockaddr_in *, struct interface *, int, int, int, int, int, U_LONG));
+  extern	void	peer_all_reset	P((void));
+--- 103,109 ----
+  /* ntp_peer.c */
+  extern	void	init_peer	P((void));
+  extern	struct peer *findexistingpeer P((struct sockaddr_in *, struct peer *));
+! extern	struct peer *findpeer	P((struct sockaddr_in *, struct interface *, int));
+  extern	struct peer *findpeerbyassoc P((int));
+  extern	struct peer *newpeer	P((struct sockaddr_in *, struct interface *, int, int, int, int, int, U_LONG));
+  extern	void	peer_all_reset	P((void));
+*** ntpq/ntpq_ops.c	Thu Jan 27 14:03:40 1994
+--- /pogo/ajit/xntp3/ntpq/ntpq_ops.c	Wed May 11 13:19:13 1994
+***************
+*** 1280,1285 ****
+--- 1280,1286 ----
+  	l_fp ts;
+  	u_char havevar[MAXHAVE];
+  	U_LONG poll;
++ 	char type = '?';
+  	char refid_string[10];
+  	extern struct ctl_var peer_var[];
+  
+***************
+*** 1287,1292 ****
+--- 1288,1294 ----
+  	gettstamp(&ts);
+  	
+  	while (nextvar(&datalen, &data, &name, &value)) {
++ 		U_LONG dummy;
+  		i = findvar(name, peer_var);
+  		if (i == 0)
+  			continue;	/* don't know this one */
+***************
+*** 1296,1301 ****
+--- 1298,1311 ----
+  				havevar[HAVE_SRCADR] = 1;
+  			break;
+  		case CP_DSTADR:
++ 			if (decodenetnum(value, &dummy)) {
++ 				dummy = ntohl(dummy);
++ 				type = ((dummy&0xf0000000)==0xe0000000) ? 'm' :
++ 				       ((dummy&0x000000ff)==0x000000ff) ? 'b' :
++ 				       ((dummy&0xffffffff)==0x7f000001) ? 'l' :
++ 				       ((dummy&0xffffffe0)==0x00000000) ? '-' :
++ 				       					  'u';
++ 			}
+  			if (pvl == opeervarlist) {
+  				if (decodenetnum(value, &dstadr)) {
+  					havevar[HAVE_DSTADR] = 1;
+***************
+*** 1408,1415 ****
+  	if (numhosts > 1)
+  		(void) fprintf(fp, "%-*s ", maxhostlen, currenthost);
+  	(void) fprintf(fp,
+! 	    "%c%-15.15s %-15.15s %2d %4.4s %4d  %3o  %7.7s %7.7s %7.7s\n",
+! 	    c, nntohost(srcadr), dstadr_refid, stratum,
+  	    when(&ts, &rec, &reftime),
+  	    poll, reach, fixup(7, lfptoms(&estdelay, 2)),
+  	    fixup(7, lfptoms(&estoffset, 2)),
+--- 1418,1425 ----
+  	if (numhosts > 1)
+  		(void) fprintf(fp, "%-*s ", maxhostlen, currenthost);
+  	(void) fprintf(fp,
+! 	    "%c%-15.15s %-15.15s %2ld %c %4.4s %4ld  %3lo  %7.7s %7.7s %7.7s\n",
+! 	    c, nntohost(srcadr), dstadr_refid, stratum, type,
+  	    when(&ts, &rec, &reftime),
+  	    poll, reach, fixup(7, lfptoms(&estdelay, 2)),
+  	    fixup(7, lfptoms(&estoffset, 2)),
+***************
+*** 1498,1509 ****
+  	if (numhosts > 1)
+  		(void) fprintf(fp, "%-*.*s ", maxhostlen, maxhostlen, "host");
+  	(void) fprintf(fp,
+! "     remote           refid      st when poll reach   delay  offset    disp\n");
+  	if (numhosts > 1)
+  		for (i = 0; i <= maxhostlen; ++i)
+  			(void) fprintf(fp, "=");
+  	(void) fprintf(fp,
+! "===========================================================================\n");
+  
+  	for (i = 0; i < numassoc; i++) {
+  		if (!showall &&
+--- 1508,1519 ----
+  	if (numhosts > 1)
+  		(void) fprintf(fp, "%-*.*s ", maxhostlen, maxhostlen, "host");
+  	(void) fprintf(fp,
+! "     remote           refid      st t when poll reach   delay  offset    disp\n");
+  	if (numhosts > 1)
+  		for (i = 0; i <= maxhostlen; ++i)
+  			(void) fprintf(fp, "=");
+  	(void) fprintf(fp,
+! "=============================================================================\n");
+  
+  	for (i = 0; i < numassoc; i++) {
+  		if (!showall &&
+***************
+*** 1558,1566 ****
+  		return;
+  
+  	(void) fprintf(fp,
+! "     remote           local      st when poll reach  delay  offset   disp\n");
+  	(void) fprintf(fp,
+! "=========================================================================\n");
+  
+  	for (i = 0; i < numassoc; i++) {
+  		if (!showall &&
+--- 1568,1576 ----
+  		return;
+  
+  	(void) fprintf(fp,
+! "     remote           local      st t when poll reach  delay  offset   disp\n");
+  	(void) fprintf(fp,
+! "===========================================================================\n");
+  
+  	for (i = 0; i < numassoc; i++) {
+  		if (!showall &&
+*** ntpq/version.c	Thu May 12 13:22:32 1994
+--- /pogo/ajit/xntp3/ntpq/version.c	Thu May 12 18:02:23 1994
+***************
+*** 1,4 ****
+  /*
+   * version file for ntpq
+   */
+! char * Version = "ntpq version=3.3t (beta multicast); Thu May 12 13:22:31 GMT 1994 (1)";
+--- 1,4 ----
+  /*
+   * version file for ntpq
+   */
+! char * Version = "ntpq version=3.3t (beta multicast); Thu May 12 18:02:22 GMT 1994 (1)";
+*** ntptrace/version.c	Thu May 12 13:23:07 1994
+--- /pogo/ajit/xntp3/ntptrace/version.c	Thu May 12 18:02:59 1994
+***************
+*** 1,4 ****
+  /*
+   * version file for ntptrace
+   */
+! char * Version = "ntptrace version=3.3t (beta multicast); Thu May 12 13:23:06 GMT 1994 (1)";
+--- 1,4 ----
+  /*
+   * version file for ntptrace
+   */
+! char * Version = "ntptrace version=3.3t (beta multicast); Thu May 12 18:02:58 GMT 1994 (1)";
+Common subdirectories: parse/util and /pogo/ajit/xntp3/parse/util
+Common subdirectories: ppsclock/ppstest and /pogo/ajit/xntp3/ppsclock/ppstest
+Common subdirectories: ppsclock/sys and /pogo/ajit/xntp3/ppsclock/sys
+Common subdirectories: scripts/monitoring and /pogo/ajit/xntp3/scripts/monitoring
+Common subdirectories: scripts/stats and /pogo/ajit/xntp3/scripts/stats
+Common subdirectories: scripts/support and /pogo/ajit/xntp3/scripts/support
+*** xntpd/ntp_config.c	Tue May 10 23:35:04 1994
+--- /pogo/ajit/xntp3/xntpd/ntp_config.c	Wed May 11 13:19:17 1994
+***************
+*** 562,568 ****
+  			break;
+  
+  		case 'm':
+! 			proto_config(PROTO_MULTICAST_ADD, INADDR_NTP);
+  			break;
+  
+  		case 'p':
+--- 562,568 ----
+  			break;
+  
+  		case 'm':
+! 			proto_config(PROTO_MULTICAST_ADD, htonl(INADDR_NTP));
+  			break;
+  
+  		case 'p':
+***************
+*** 836,842 ****
+  						    peeraddr.sin_addr.s_addr);
+  				}
+  			} else
+! 				proto_config(PROTO_MULTICAST_ADD, INADDR_NTP);
+  			break;
+  
+  		case CONFIG_AUTHENTICATE:
+--- 836,842 ----
+  						    peeraddr.sin_addr.s_addr);
+  				}
+  			} else
+! 				proto_config(PROTO_MULTICAST_ADD, htonl(INADDR_NTP));
+  			break;
+  
+  		case CONFIG_AUTHENTICATE:
+*** xntpd/ntp_control.c	Sun May  8 04:06:05 1994
+--- /pogo/ajit/xntp3/xntpd/ntp_control.c	Wed May 11 13:19:21 1994
+***************
+*** 484,493 ****
+  		    = htonl(res_keyid);
+  		maclen = 
+  		    authencrypt(res_keyid, (U_LONG *)&rpkt, CTL_HEADER_LEN);
+! 		sendpkt(rmt_addr, lcl_inter, (struct pkt *)&rpkt,
+  		    CTL_HEADER_LEN + maclen);
+  	} else {
+! 		sendpkt(rmt_addr, lcl_inter, (struct pkt *)&rpkt,
+  		    CTL_HEADER_LEN);
+  	}
+  	numctlerrors++;
+--- 484,493 ----
+  		    = htonl(res_keyid);
+  		maclen = 
+  		    authencrypt(res_keyid, (U_LONG *)&rpkt, CTL_HEADER_LEN);
+! 		sendpkt(rmt_addr, lcl_inter, -1, (struct pkt *)&rpkt,
+  		    CTL_HEADER_LEN + maclen);
+  	} else {
+! 		sendpkt(rmt_addr, lcl_inter, -1, (struct pkt *)&rpkt,
+  		    CTL_HEADER_LEN);
+  	}
+  	numctlerrors++;
+***************
+*** 788,793 ****
+--- 788,794 ----
+  				rpkt.sequence = htons(ctl_trap[i].tr_sequence);
+  				sendpkt(&ctl_trap[i].tr_addr,
+  				    ctl_trap[i].tr_localaddr,
++ 				    -1,
+  				    (struct pkt *)&rpkt, sendlen);
+  				if (!more)
+  					ctl_trap[i].tr_sequence++;
+***************
+*** 812,821 ****
+  			maclen = 
+  			    authencrypt(res_keyid, (U_LONG *)&rpkt, totlen);
+  
+!  			sendpkt(rmt_addr, lcl_inter, (struct pkt *)&rpkt,
+  			    totlen + maclen);
+  		} else {
+!  			sendpkt(rmt_addr, lcl_inter, (struct pkt *)&rpkt,
+  			    sendlen);
+  		}
+  		if (more)
+--- 813,822 ----
+  			maclen = 
+  			    authencrypt(res_keyid, (U_LONG *)&rpkt, totlen);
+  
+!  			sendpkt(rmt_addr, lcl_inter, -1, (struct pkt *)&rpkt,
+  			    totlen + maclen);
+  		} else {
+!  			sendpkt(rmt_addr, lcl_inter, -1, (struct pkt *)&rpkt,
+  			    sendlen);
+  		}
+  		if (more)
+***************
+*** 1398,1404 ****
+  		break;
+  	case CP_DSTADR:
+  		ctl_putadr(peer_var[CP_DSTADR].text,
+! 		    peer->dstadr->sin.sin_addr.s_addr);
+  		break;
+  	case CP_DSTPORT:
+  		ctl_putuint(peer_var[CP_DSTPORT].text,
+--- 1399,1412 ----
+  		break;
+  	case CP_DSTADR:
+  		ctl_putadr(peer_var[CP_DSTADR].text,
+! 			peer->processed ?
+! 			peer->cast_flags & MDF_BCAST ?
+! 				peer->dstadr->bcast.sin_addr.s_addr:
+! 			peer->cast_flags ?
+! 			peer->dstadr->sin.sin_addr.s_addr ?
+! 				peer->dstadr->sin.sin_addr.s_addr:
+! 				peer->dstadr->bcast.sin_addr.s_addr:
+! 				8 : 12);
+  		break;
+  	case CP_DSTPORT:
+  		ctl_putuint(peer_var[CP_DSTPORT].text,
+*** xntpd/ntp_io.c	Fri May  6 03:48:42 1994
+--- /pogo/ajit/xntp3/xntpd/ntp_io.c	Fri May 13 14:01:25 1994
+***************
+*** 474,503 ****
+  io_multicast_add(addr)
+  	U_LONG addr;
+  {
+! #ifdef MCAST
+! 	int fd;
+! 	struct ip_mreq mreq;
+! 	struct sockaddr_in sinaddr;
+! 
+! 	if (!IN_CLASSD(addr)) {
+! 		sinaddr.sin_addr.s_addr = addr;
+! 		syslog(LOG_ERR,
+! 		    "invalid multicast address %s", ntoa(&sinaddr));
+! 		return;
+! 	}
+! 	inter_list[0].bfd = open_socket(&inter_list[0].bcast, 0);
+! 	fd = inter_list[0].bfd;
+! 
+! 	/*
+! 	 * Enable reception of multicast packets
+! 	 */
+! 	mreq.imr_multiaddr.s_addr = addr;
+! 	mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+! 	if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
+! 	    (char *)&mreq, sizeof(mreq)) == -1)
+! 		syslog(LOG_ERR, "setsockopt IP_ADD_MEMBERSHIP fails: %m");
+! 
+! 	inter_list[0].flags |= INT_MULTICAST;
+  #endif /* MCAST */
+  }
+  
+--- 474,538 ----
+  io_multicast_add(addr)
+  	U_LONG addr;
+  {
+!   #ifdef MCAST
+!   	struct ip_mreq mreq;
+!  	int i = ninterfaces;	/* Use the next interface */
+!  	U_LONG haddr = ntohl(addr);
+!  	struct in_addr iaddr;
+!  	int s;
+!  	struct sockaddr_in *sinp;
+!  
+!  	if (!IN_CLASSD(haddr))
+!  		return;
+!  
+!  	iaddr.s_addr = addr;
+!  	for (i=0; i<ninterfaces; i++) {
+!  		/* Already have this address */
+!  		if (inter_list[i].sin.sin_addr.s_addr == addr) return;
+!  		/* found a free slot */
+!  		if (inter_list[i].sin.sin_addr.s_addr == 0 &&
+!  			inter_list[i].fd <= 0 &&
+!  			inter_list[i].bfd <= 0 &&
+!  			inter_list[i].flags == 0) break;
+!  	}
+!  	sinp = &(inter_list[i].sin);
+!  
+!  	memset((char *)&mreq, 0, sizeof(mreq));
+!  	memset((char *)&inter_list[i], 0, sizeof inter_list[0]);
+!  	sinp->sin_family = AF_INET;
+!  	sinp->sin_addr = iaddr;
+!  	sinp->sin_port = htons(123);
+!  
+!  	s = open_socket(sinp, 0);
+!  	/* Try opening a socket for the specified class D address */
+!  	/* This works under SunOS 4.x, but not OSF1 .. :-( */
+!  	if (s < 0) {
+!  		memset((char *)&inter_list[i], 0, sizeof inter_list[0]);
+!  		i = 0;
+!  		/* HACK ! -- stuff in an address */
+!  		inter_list[i].bcast.sin_addr.s_addr = addr;
+!  	}
+!  	else {
+!  		inter_list[i].fd = s;
+!  		inter_list[i].bfd = -1;
+!  		(void) strncpy(inter_list[i].name, "multicast",
+!  	     	sizeof(inter_list[i].name));
+!  		inter_list[i].mask.sin_addr.s_addr = htonl(~0);
+!  	}
+!  	printf("using interface %d for multicast %08x on %d\n", i, haddr & 0xffffffff, inter_list[i].fd);
+!  	/*
+!  	 * enable reception of multicast packets
+!  	 */
+!  	mreq.imr_multiaddr = iaddr;
+!  	mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+!  	if (setsockopt(inter_list[i].fd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
+!  	    (char *)&mreq, sizeof(mreq)) == -1)
+!  		syslog(LOG_ERR,
+!  		"setsockopt IP_ADD_MEMBERSHIP fails: %m for %x / %x (%s)",
+!  			mreq.imr_multiaddr, mreq.imr_interface.s_addr,
+!  			inet_ntoa(iaddr));
+!  	inter_list[i].flags |= INT_MULTICAST;
+!  	if (i >= ninterfaces) ninterfaces = i+1;	
+  #endif /* MCAST */
+  }
+  
+***************
+*** 526,532 ****
+  	U_LONG addr;
+  {
+  #ifdef MCAST
+! 	int fd = inter_list[0].bfd;
+  	struct ip_mreq mreq;
+  	struct sockaddr_in sinaddr;
+  
+--- 561,567 ----
+  	U_LONG addr;
+  {
+  #ifdef MCAST
+!         int i;
+  	struct ip_mreq mreq;
+  	struct sockaddr_in sinaddr;
+  
+***************
+*** 541,551 ****
+  	 * Disable reception of multicast packets
+  	 */
+  	mreq.imr_multiaddr.s_addr = addr;
+! 	mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+! 	if (setsockopt(fd, IPPROTO_IP, IP_DROP_MEMBERSHIP,
+! 	    (char *)&mreq, sizeof(mreq)) == -1)
+! 		syslog(LOG_ERR, "setsockopt IP_DROP_MEMBERSHIP fails: %m");
+! 	inter_list[0].flags &= ~INT_MULTICAST;
+  #else /* MCAST */
+  	syslog(LOG_ERR, "this function requires multicast kernel");
+  #endif /* MCAST */
+--- 576,604 ----
+  	 * Disable reception of multicast packets
+  	 */
+  	mreq.imr_multiaddr.s_addr = addr;
+!  	mreq.imr_interface.s_addr = INADDR_ANY;
+!  	for (i = 0; i < ninterfaces; i++) {
+!  		if (!(inter_list[i].flags & INT_MULTICAST))
+!  			continue;
+!  		if (!(inter_list[i].fd < 0))
+!  			continue;
+!  		if (addr != inter_list[i].sin.sin_addr.s_addr)
+!  			continue;
+!  		if (i != 0) {
+!  			/* we have an explicit fd, so we can slose it */
+!  			close_socket(inter_list[i].fd);
+!  			memset((char *)&inter_list[i], 0, sizeof inter_list[0]);
+!  			inter_list[i].fd = -1;
+!  			inter_list[i].bfd = -1;
+!  		} else {
+!  			/* We are sharing "any address" port :-(  Don't close it! */
+!  			if (setsockopt(inter_list[i].fd, IPPROTO_IP, IP_DROP_MEMBERSHIP,
+!  				(char *)&mreq, sizeof(mreq)) == -1)
+!  				syslog(LOG_ERR, "setsockopt IP_DROP_MEMBERSHIP fails: %m");
+!  
+!  			inter_list[i].flags &= ~INT_MULTICAST;
+!  		}
+! 	}
+  #else /* MCAST */
+  	syslog(LOG_ERR, "this function requires multicast kernel");
+  #endif /* MCAST */
+***************
+*** 556,564 ****
+   * open_socket - open a socket, returning the file descriptor
+   */
+  static int
+! open_socket(addr, bcast)
+  	struct sockaddr_in *addr;
+! 	int bcast;
+  {
+  	int fd;
+  	int on = 1, off = 0;
+--- 609,617 ----
+   * open_socket - open a socket, returning the file descriptor
+   */
+  static int
+! open_socket(addr, flags)
+  	struct sockaddr_in *addr;
+! 	int flags;
+  {
+  	int fd;
+  	int on = 1, off = 0;
+***************
+*** 570,579 ****
+  		/*NOTREACHED*/
+  	}
+  
+- 	if (fd > maxactivefd)
+- 		maxactivefd = fd;
+- 	FD_SET(fd, &activefds);
+- 
+  	/* set SO_REUSEADDR since we will be binding the same port
+  	   number on each interface */
+  	if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR,
+--- 623,628 ----
+***************
+*** 587,602 ****
+  	if (bind(fd, (struct sockaddr *)addr, sizeof(*addr)) < 0) {
+  		char buff[160];
+  		sprintf(buff,
+! 		    "bind() fd %d, family %d, port %d, addr %08x, bcast=%d fails: %%m", 
+  			fd,
+  			addr->sin_family,
+! 			addr->sin_port,
+! 			addr->sin_addr.s_addr,
+! 			bcast);
+  		syslog(LOG_ERR, buff);
+  		exit(1);
+  	}
+  
+  #ifdef HAVE_SIGNALED_IO
+          init_socket_sig(fd);
+  #else /* HAVE_SIGNALED_IO */
+--- 636,665 ----
+  	if (bind(fd, (struct sockaddr *)addr, sizeof(*addr)) < 0) {
+  		char buff[160];
+  		sprintf(buff,
+! 		    "bind() fd %d, family %d, port %d, addr %08x, in_classd=%d flags=%d fails: %%m", 
+  			fd,
+  			addr->sin_family,
+! 			ntohs(addr->sin_port),
+! 			ntohl(addr->sin_addr.s_addr),
+! 			IN_CLASSD(ntohl(addr->sin_addr.s_addr)),
+! 			flags);
+  		syslog(LOG_ERR, buff);
++ 		close(fd);
++ 		/* soft fail if opening a class D address */
++ 		if (IN_CLASSD(ntohl(addr->sin_addr.s_addr))) return -1;
+  		exit(1);
+  	}
++ 	if (debug) printf("bind() fd %d, family %d, port %d, addr %08x, flags=%d\n", 
++ 			fd,
++ 			addr->sin_family,
++ 			ntohs(addr->sin_port),
++ 			ntohl(addr->sin_addr.s_addr),
++ 			flags);
+  
++ 	if (fd > maxactivefd)
++ 		maxactivefd = fd;
++ 	FD_SET(fd, &activefds);
++ 
+  #ifdef HAVE_SIGNALED_IO
+          init_socket_sig(fd);
+  #else /* HAVE_SIGNALED_IO */
+***************
+*** 634,656 ****
+  		syslog(LOG_ERR, "setsockopt SO_REUSEADDR off fails: %m");
+  	}
+  
+- #ifdef MCAST
+- 	/* for the moment we use the bcast option to set multicast ttl */
+- 
+- 	if (bcast) {
+- 	    unsigned char mttl = 127;
+- 
+- 	    /* set the multicast ttl for outgoing packets */
+- 	    if (setsockopt(fd, IPPROTO_IP, IP_MULTICAST_TTL, 
+- 			   &mttl, sizeof(mttl)) == -1) {
+- 		syslog(LOG_ERR, "setsockopt IP_MULTICAST_TTL fails: %m");
+- 	    }
+- 	}
+- #endif /* MCAST */
+- 
+  #ifdef SO_BROADCAST
+  	/* if this interface can support broadcast, set SO_BROADCAST */
+! 	if (bcast) {
+  		if (setsockopt(fd, SOL_SOCKET, SO_BROADCAST,
+  		    (char *)&on, sizeof(on))) {
+  			syslog(LOG_ERR, "setsockopt(SO_BROADCAST): %m");
+--- 697,705 ----
+  		syslog(LOG_ERR, "setsockopt SO_REUSEADDR off fails: %m");
+  	}
+  
+  #ifdef SO_BROADCAST
+  	/* if this interface can support broadcast, set SO_BROADCAST */
+! 	if (flags & INT_BROADCAST) {
+  		if (setsockopt(fd, SOL_SOCKET, SO_BROADCAST,
+  		    (char *)&on, sizeof(on))) {
+  			syslog(LOG_ERR, "setsockopt(SO_BROADCAST): %m");
+***************
+*** 808,816 ****
+   * destination is logged.
+   */
+  void
+! sendpkt(dest, inter, pkt, len)
+  	struct sockaddr_in *dest;
+  	struct interface *inter;
+  	struct pkt *pkt;
+  	int len;
+  {
+--- 857,866 ----
+   * destination is logged.
+   */
+  void
+! sendpkt(dest, inter, ttl, pkt, len)
+  	struct sockaddr_in *dest;
+  	struct interface *inter;
++ 	int ttl;
+  	struct pkt *pkt;
+  	int len;
+  {
+***************
+*** 823,828 ****
+--- 873,879 ----
+  		u_short	port;
+  		struct	in_addr addr;
+  	};
++ 
+  #ifndef ERRORCACHESIZE
+  #define ERRORCACHESIZE 8
+  #endif
+***************
+*** 834,843 ****
+  
+  #ifdef DEBUG
+  	if (debug)
+! 		printf("sendpkt(fd=%d %s, %s, %d)\n", inter->fd, ntoa(dest),
+! 			ntoa(&inter->sin), len);
+  #endif
+  
+  	for (slot = ERRORCACHESIZE; --slot >= 0; )
+  		if (badaddrs[slot].port == dest->sin_port &&
+  		    badaddrs[slot].addr.s_addr == dest->sin_addr.s_addr)
+--- 885,910 ----
+  
+  #ifdef DEBUG
+  	if (debug)
+! 		printf("%ssendpkt(fd=%d %s, %s, ttl=%d, %d)\n",
+! 			(ttl >= 0) ? "\tMCAST\t*****" : "",
+! 			inter->fd, ntoa(dest),
+! 			ntoa(&inter->sin), ttl, len);
+  #endif
+  
++ #ifdef MCAST
++ 	/* for the moment we use the bcast option to set multicast ttl */
++ 	if (ttl >= 0 && ttl != inter->last_ttl) {
++ 	    unsigned char mttl = ttl;
++ 
++ 	    /* set the multicast ttl for outgoing packets */
++ 	    if (setsockopt(inter->fd, IPPROTO_IP, IP_MULTICAST_TTL, 
++ 			   &mttl, sizeof(mttl)) == -1) {
++ 		syslog(LOG_ERR, "setsockopt IP_MULTICAST_TTL fails: %m");
++ 	    }
++ 	    else inter->last_ttl = ttl;
++ 	}
++ #endif /* MCAST */
++ 
+  	for (slot = ERRORCACHESIZE; --slot >= 0; )
+  		if (badaddrs[slot].port == dest->sin_port &&
+  		    badaddrs[slot].addr.s_addr == dest->sin_addr.s_addr)
+***************
+*** 958,963 ****
+--- 1025,1031 ----
+  				 */
+  				rb->recv_srcclock = rp->srcclock;
+  				rb->dstadr = 0;
++ 				rb->fd = fd;
+  				rb->recv_time = ts;
+  				rb->receiver = rp->clock_recv;
+  
+***************
+*** 986,996 ****
+  			if (doing == 0) {
+  				fd = inter_list[i].fd;
+  			} else {
+! 				if (!(inter_list[i].flags & INT_BCASTOPEN ||
+! 				      inter_list[i].flags & INT_MULTICAST))
+  					break;
+  				fd = inter_list[i].bfd;
+  			}
+  			if (FD_ISSET(fd, &fds)) {
+  				n--;
+  
+--- 1054,1064 ----
+  			if (doing == 0) {
+  				fd = inter_list[i].fd;
+  			} else {
+! 				if (!(inter_list[i].flags & INT_BCASTOPEN))
+  					break;
+  				fd = inter_list[i].bfd;
+  			}
++ 			if (fd < 0) continue;
+  			if (FD_ISSET(fd, &fds)) {
+  				n--;
+  
+***************
+*** 1013,1025 ****
+  #endif
+  					char buf[RX_BUFF_SIZE];
+  
+! #ifndef UDP_WILDCARD_DELIVERY
+  					(void) read(fd, buf, sizeof buf);
+  #else
+! 				        fromlen = 0;
+  				        (void) recvfrom(fd, buf, sizeof(buf), 0,
+! 				                        (struct sockaddr *)0,
+  							&fromlen);
+  #endif
+  
+  					if (i == 0)
+--- 1081,1096 ----
+  #endif
+  					char buf[RX_BUFF_SIZE];
+  
+! #ifdef NO_UDP_WILDCARD_DELIVERY
+! printf("ignore/drop on %d(%ld) fd=%d\n", i, free_recvbufs, fd);
+  					(void) read(fd, buf, sizeof buf);
+  #else
+! 					struct sockaddr from;
+! 				        fromlen = sizeof from;
+  				        (void) recvfrom(fd, buf, sizeof(buf), 0,
+! 				                        &from,
+  							&fromlen);
++ printf("ignore/drop on %d(%ld) fd=%d from %s\n", i, free_recvbufs, fd, inet_ntoa(((struct sockaddr_in *) &from)->sin_addr));
+  #endif
+  
+  					if (i == 0)
+***************
+*** 1053,1059 ****
+  				}
+  #ifdef DEBUG
+  	  if (debug)
+! 		  printf("input_handler: fd=%d length %d\n", fd, rb->recv_length);
+  #endif
+  
+  				/*
+--- 1124,1133 ----
+  				}
+  #ifdef DEBUG
+  	  if (debug)
+! 		  printf("input_handler: fd=%d length %d from %08lx %s\n",
+! 		 	 fd, rb->recv_length,
+! 		  	ntohl(rb->recv_srcadr.sin_addr.s_addr) & 0xffffffff,
+! 		  	inet_ntoa(rb->recv_srcadr.sin_addr));
+  #endif
+  
+  				/*
+***************
+*** 1061,1066 ****
+--- 1135,1141 ----
+  				 * put it on the full list and do bookkeeping.
+  				 */
+  				rb->dstadr = &inter_list[i];
++ 				rb->fd = fd;
+  				rb->recv_time = ts;
+  				rb->receiver = receive;
+  	
+*** xntpd/ntp_monitor.c	Thu Feb  3 05:20:18 1994
+--- /pogo/ajit/xntp3/xntpd/ntp_monitor.c	Wed May 11 13:19:38 1994
+***************
+*** 221,227 ****
+  
+  	md = (mon_hash + hash)->hash_next;
+  	while (md != (mon_hash + hash)) {
+! 		if (md->rmtadr == netnum && md->mode == (u_char)mode) {
+  			md->lasttime = current_time;
+  			md->count++;
+  			md->version = PKT_VERSION(pkt->li_vn_mode);
+--- 221,229 ----
+  
+  	md = (mon_hash + hash)->hash_next;
+  	while (md != (mon_hash + hash)) {
+! 		if (md->rmtadr == netnum && 
+! 		    /* ?? md->interface == rbufp->dstadr && ?? */
+! 		    md->mode == (u_char)mode) {
+  			md->lasttime = current_time;
+  			md->count++;
+  			md->version = PKT_VERSION(pkt->li_vn_mode);
+***************
+*** 282,287 ****
+--- 284,292 ----
+  	md->rmtport = NSRCPORT(&rbufp->recv_srcadr);
+  	md->mode = (u_char) mode;
+  	md->version = PKT_VERSION(pkt->li_vn_mode);
++ 	md->interface = rbufp->dstadr;
++ 	md->cast_flags = ((rbufp->dstadr->flags & INT_MULTICAST) && rbufp->fd == md->interface->fd)
++ 		? MDF_MCAST: rbufp->fd == md->interface->bfd ? MDF_BCAST : MDF_UCAST;
+  
+  	/*
+  	 * Shuffle him into the hash table, inserting him at the
+*** xntpd/ntp_peer.c	Mon May  9 20:05:48 1994
+--- /pogo/ajit/xntp3/xntpd/ntp_peer.c	Wed May 11 13:39:32 1994
+***************
+*** 192,203 ****
+   * findpeer - find and return a peer in the hash table.
+   */
+  struct peer *
+! findpeer(srcadr, dstadr)
+  	struct sockaddr_in *srcadr;
+  	struct interface *dstadr;
+  {
+  	register struct peer *any_inter_peer;
+  	register struct peer *peer;
+  	int hash;
+  
+  	findpeer_calls++;
+--- 192,205 ----
+   * findpeer - find and return a peer in the hash table.
+   */
+  struct peer *
+! findpeer(srcadr, dstadr, fd)
+  	struct sockaddr_in *srcadr;
+  	struct interface *dstadr;
++ 	int fd;
+  {
+  	register struct peer *any_inter_peer;
+  	register struct peer *peer;
++ 	register struct peer *best = (struct peer *) 0;
+  	int hash;
+  
+  	findpeer_calls++;
+***************
+*** 208,214 ****
+--- 210,224 ----
+  		if (NSRCADR(srcadr) == NSRCADR(&peer->srcadr)
+  		    && NSRCPORT(srcadr) == NSRCPORT(&peer->srcadr)) {
+  			if (peer->dstadr == dstadr)
++ 			{	int rfd = (peer->cast_flags & MDF_BCAST) ? dstadr->bfd : dstadr->fd;
++ 				if (rfd == fd)
++ 				{
++ 					printf("findpeer perfect match on %x %d\n",
++ 						NSRCADR(srcadr), fd);
+  				return peer;	/* got it! */
++ 				}
++ 				best = peer;
++ 			}
+  			if (peer->dstadr == any_interface) {
+  				/*
+  				 * We shouldn't have more than one
+***************
+*** 229,240 ****
+  			 * packet arrives and there exists an assoc.
+  			 * with src in client/server mode
+  			 */
+! 			if (dstadr == any_interface &&
+! 			    peer->flags & FLAG_MCAST2)
+  				return peer;
+  		}
+  	}
+  
+  	/*
+  	 * If we didn't find the specific peer but found a wild card,
+  	 * modify the interface and return him.
+--- 239,278 ----
+  			 * packet arrives and there exists an assoc.
+  			 * with src in client/server mode
+  			 */
+!  			if (((dstadr == any_interface) || (peer->cast_flags & MDF_MCAST)) && 
+!  			    peer->flags & FLAG_MCAST2) {
+!  					printf("findpeer match from %08x to %08x/%08x (f=%x) fd=%d\n",
+!  						NSRCADR(srcadr) & 0xffffffff,
+!  						dstadr->sin.sin_addr.s_addr & 0xffffffff,
+!  						any_interface->sin.sin_addr.s_addr & 0xffffffff,
+!  						peer->cast_flags,
+!  						fd);
+  				return peer;
++  			}
++  			printf("findpeer miss  from %08x to %x08/%x08 (f=%x) fd=%d\n",
++  						NSRCADR(srcadr) & 0xffffffff,
++  						dstadr->sin.sin_addr.s_addr & 0xffffffff,
++  						any_interface->sin.sin_addr.s_addr & 0xffffffff,
++  						peer->cast_flags,
++  						fd);
+  		}
+  	}
+  
++  	if(best) {
++  		printf("\t%x: fd %d for %08lx %s b=%lx u=%lx f=%x/%x fds=%d/%d\n",
++  			best,
++  			fd, SRCADR(srcadr),
++  			(best->dstadr == any_interface) ? "ANY" : "addr",
++  			best->dstadr->bcast.sin_addr.s_addr,
++  			best->dstadr->sin.sin_addr.s_addr,
++  			best->dstadr->flags,
++  			best->cast_flags,
++  			best->dstadr->fd,
++  			best->dstadr->bfd
++  			);
++  		return best;
++  	}
++ 
+  	/*
+  	 * If we didn't find the specific peer but found a wild card,
+  	 * modify the interface and return him.
+***************
+*** 462,467 ****
+--- 500,510 ----
+  		peer->dstadr = findbcastinter(srcadr);
+  	else
+  		peer->dstadr = any_interface;
++ 	peer->cast_flags = (hmode == MODE_BROADCAST || hmode == MODE_BCLIENT || hmode == MODE_MCLIENT) ?
++ 		(peer->dstadr->flags & INT_MULTICAST) ? MDF_MCAST : MDF_BCAST : MDF_UCAST;
++ 	printf("newpeer@%lx: %lx, %x(%x|%x|%x) %x(%x) gave %x\n",
++ 		peer, dstadr, hmode, MODE_BROADCAST, MODE_BCLIENT, MODE_MCLIENT,
++ 		peer->dstadr->flags, INT_MULTICAST, peer->cast_flags);
+  	peer->hmode = (u_char)hmode;
+  	peer->version = (u_char)version;
+  	peer->minpoll = (u_char)minpoll;
+*** xntpd/ntp_proto.c	Wed May 11 23:53:25 1994
+--- /pogo/ajit/xntp3/xntpd/ntp_proto.c	Wed May 11 13:19:47 1994
+***************
+*** 101,107 ****
+  	if ((peer->hmode != MODE_BROADCAST && peer->hmode != MODE_BCLIENT) ||
+  	    (peer->hmode == MODE_BROADCAST && sys_leap != LEAP_NOTINSYNC)) {
+  		U_LONG xkeyid;
+! 
+  		/*
+  		 * Figure out which keyid to include in the packet
+  		 */
+--- 101,108 ----
+  	if ((peer->hmode != MODE_BROADCAST && peer->hmode != MODE_BCLIENT) ||
+  	    (peer->hmode == MODE_BROADCAST && sys_leap != LEAP_NOTINSYNC)) {
+  		U_LONG xkeyid;
+! 		int find_rtt = (peer->flags & MDF_MCAST) /* && (peer->dstadr != any_interface)*/;
+! if (peer->hmode == MODE_MCLIENT) printf("transmit -- MCLIENT !!\n");
+  		/*
+  		 * Figure out which keyid to include in the packet
+  		 */
+***************
+*** 146,152 ****
+  			HTONL_FP(&peer->xmt, &xpkt.xmt);
+  			sendlen = auth2crypt(xkeyid, (U_LONG *)&xpkt,
+  					     LEN_PKT_NOMAC);
+! 			sendpkt(&(peer->srcadr), peer->dstadr, &xpkt,
+  				sendlen + LEN_PKT_NOMAC);
+  #ifdef DEBUG
+  			if (debug > 1)
+--- 147,157 ----
+  			HTONL_FP(&peer->xmt, &xpkt.xmt);
+  			sendlen = auth2crypt(xkeyid, (U_LONG *)&xpkt,
+  					     LEN_PKT_NOMAC);
+! 			printf("flags %x, %x=%x -> %x\n", peer->flags, peer->dstadr, any_interface, find_rtt);
+! 			sendpkt(&(peer->srcadr),
+! 				(find_rtt) ? any_interface : peer->dstadr,
+! 				((peer->flags & MDF_MCAST) && ! find_rtt) ? peer->ttl : -1,
+! 				&xpkt,
+  				sendlen + LEN_PKT_NOMAC);
+  #ifdef DEBUG
+  			if (debug > 1)
+***************
+*** 158,166 ****
+  			/*
+  			 * Get xmt timestamp, then send it without mac field
+  			 */
+  			get_systime(&(peer->xmt));
+  			HTONL_FP(&peer->xmt, &xpkt.xmt);
+! 			sendpkt(&(peer->srcadr), peer->dstadr, &xpkt,
+  			    LEN_PKT_NOMAC);
+  #ifdef DEBUG
+  			if (debug > 1)
+--- 163,176 ----
+  			/*
+  			 * Get xmt timestamp, then send it without mac field
+  			 */
++ 			int find_rtt = (peer->flags & MDF_MCAST) && (peer->dstadr != any_interface);
+  			get_systime(&(peer->xmt));
+  			HTONL_FP(&peer->xmt, &xpkt.xmt);
+! 			printf("Flags %x, %x=%x -> %x\n", peer->flags, peer->dstadr, any_interface, find_rtt);
+! 			sendpkt(&(peer->srcadr),
+! 				(find_rtt) ? any_interface : peer->dstadr,
+! 				((peer->flags & MDF_MCAST) && ! find_rtt) ? peer->ttl : -1,
+! 				&xpkt,
+  			    LEN_PKT_NOMAC);
+  #ifdef DEBUG
+  			if (debug > 1)
+***************
+*** 379,385 ****
+  	 * Find the peer.  This will return a null if this guy
+  	 * isn't in the database.
+  	 */
+! 	peer = findpeer(&rbufp->recv_srcadr, rbufp->dstadr);
+  
+  	/*
+  	 * Check the length for validity, drop the packet if it is
+--- 389,395 ----
+  	 * Find the peer.  This will return a null if this guy
+  	 * isn't in the database.
+  	 */
+! 	peer = findpeer(&rbufp->recv_srcadr, rbufp->dstadr, rbufp->fd);
+  
+  	/*
+  	 * Check the length for validity, drop the packet if it is
+***************
+*** 804,812 ****
+  		peer->flash |= TEST1;		/* duplicate packet */
+  	if (PKT_MODE(pkt->li_vn_mode) != MODE_BROADCAST) {
+  		if (!L_ISEQU(&peer->xmt, &p_org)) { /* test 2 */
+- 			peer->flash |= TEST2;	/* bogus packet */
+- 			peer->bogusorg++;
+  			randomize = POLL_MAKERANDOM;
+  		}
+  		if ((p_rec.l_ui == 0 && p_rec.l_uf == 0) ||
+  		    (p_org.l_ui == 0 && p_org.l_uf == 0))
+--- 814,822 ----
+  		peer->flash |= TEST1;		/* duplicate packet */
+  	if (PKT_MODE(pkt->li_vn_mode) != MODE_BROADCAST) {
+  		if (!L_ISEQU(&peer->xmt, &p_org)) { /* test 2 */
+  			randomize = POLL_MAKERANDOM;
++ 			peer->bogusorg++;
++ 			peer->flash |= TEST2;	/* bogus packet */
+  		}
+  		if ((p_rec.l_ui == 0 && p_rec.l_uf == 0) ||
+  		    (p_org.l_ui == 0 && p_org.l_uf == 0))
+***************
+*** 828,837 ****
+  	/*
+  	 * Test for valid header (tests 5 through 8)
+  	 */
+! 	if (trustable == 0) {		/* test 5 */
+  		peer->flash |= TEST5;	/* authentication failed */
+- 		peer->badauth++;
+- 	}
+  	if (PKT_LEAP(pkt->li_vn_mode) == LEAP_NOTINSYNC || /* test 6 */
+  	    p_xmt.l_ui < ntohl(pkt->reftime.l_ui) ||
+  	    p_xmt.l_ui >= (ntohl(pkt->reftime.l_ui) + NTP_MAXAGE)) {
+--- 838,845 ----
+  	/*
+  	 * Test for valid header (tests 5 through 8)
+  	 */
+! 	if (trustable == 0)		/* test 5 */
+  		peer->flash |= TEST5;	/* authentication failed */
+  	if (PKT_LEAP(pkt->li_vn_mode) == LEAP_NOTINSYNC || /* test 6 */
+  	    p_xmt.l_ui < ntohl(pkt->reftime.l_ui) ||
+  	    p_xmt.l_ui >= (ntohl(pkt->reftime.l_ui) + NTP_MAXAGE)) {
+***************
+*** 1061,1067 ****
+  		if (!peer->flags & FLAG_REFCLOCK && d < NTP_MINDISPERSE)
+  			d = NTP_MINDISPERSE;
+  		sys_rootdispersion = peer->rootdispersion + d;
+! 		if (peer->stratum > 0)
+                  	sys_refid = peer->srcadr.sin_addr.s_addr;
+  		else
+  			sys_refid = peer->refid;
+--- 1069,1075 ----
+  		if (!peer->flags & FLAG_REFCLOCK && d < NTP_MINDISPERSE)
+  			d = NTP_MINDISPERSE;
+  		sys_rootdispersion = peer->rootdispersion + d;
+! 		if (peer->stratum > 1)
+                  	sys_refid = peer->srcadr.sin_addr.s_addr;
+  		else
+  			sys_refid = peer->refid;
+***************
+*** 1079,1086 ****
+  	sys_reftime = peer->rec;
+  	sys_refskew.l_i = 0; sys_refskew.l_f = NTP_SKEWINC;
+  
+- 	if (!pll_enable)
+- 		return;
+  	switch (local_clock(&sys_offset, peer)) {
+  	case -1:
+  		/*
+--- 1087,1092 ----
+***************
+*** 1155,1160 ****
+--- 1161,1167 ----
+  	 * less that peer.timer, update peer.timer.
+  	 */
+  	oldpoll = peer->hpoll;
++ if (peer->hmode == MODE_MCLIENT) printf("ppoll -- MCLIENT !!\n");
+  	if (peer->hmode == MODE_BCLIENT)
+  		peer->hpoll = peer->ppoll;
+  	else if ((peer->flags & FLAG_SYSPEER) && new_hpoll > sys_poll)
+***************
+*** 1480,1490 ****
+  
+  			if (peer->dispersion >= NTP_MAXDISPERSE) {
+  				peer->seldisptoolarge++;
+! 				continue;	/* bad dispersion */
+  			}
+  			if (peer->org.l_ui < peer->reftime.l_ui) {
+  				peer->selbroken++;
+! 				continue;	/* bad reference time */
+  			}
+  
+  			/*
+--- 1487,1497 ----
+  
+  			if (peer->dispersion >= NTP_MAXDISPERSE) {
+  				peer->seldisptoolarge++;
+! 				continue;	/* too noisy or broken */
+  			}
+  			if (peer->org.l_ui < peer->reftime.l_ui) {
+  				peer->selbroken++;
+! 				continue;	/* very broken host */
+  			}
+  
+  			/*
+***************
+*** 1906,1912 ****
+  		L_ADDUF(&xmt_ts, sys_authdelay);
+  		HTONL_FP(&xmt_ts, &xpkt.xmt);
+  		maclen = auth2crypt(xkey, (U_LONG *)&xpkt, LEN_PKT_NOMAC);
+! 		sendpkt(&rbufp->recv_srcadr, rbufp->dstadr, &xpkt,
+  			LEN_PKT_NOMAC + maclen);
+  	} else {
+  		/*
+--- 1913,1919 ----
+  		L_ADDUF(&xmt_ts, sys_authdelay);
+  		HTONL_FP(&xmt_ts, &xpkt.xmt);
+  		maclen = auth2crypt(xkey, (U_LONG *)&xpkt, LEN_PKT_NOMAC);
+! 		sendpkt(&rbufp->recv_srcadr, rbufp->dstadr, -1, &xpkt,
+  			LEN_PKT_NOMAC + maclen);
+  	} else {
+  		/*
+***************
+*** 1914,1920 ****
+  		 */
+  		get_systime(&xmt_ts);
+  		HTONL_FP(&xmt_ts, &xpkt.xmt);
+! 		sendpkt(&rbufp->recv_srcadr, rbufp->dstadr, &xpkt,
+  		    LEN_PKT_NOMAC);
+  	}
+  }
+--- 1921,1927 ----
+  		 */
+  		get_systime(&xmt_ts);
+  		HTONL_FP(&xmt_ts, &xpkt.xmt);
+! 		sendpkt(&rbufp->recv_srcadr, rbufp->dstadr, -1, &xpkt,
+  		    LEN_PKT_NOMAC);
+  	}
+  }
+*** xntpd/ntp_request.c	Thu May 12 00:55:31 1994
+--- /pogo/ajit/xntp3/xntpd/ntp_request.c	Wed May 11 13:19:53 1994
+***************
+*** 70,76 ****
+  static	void	do_ressubflags	P((struct sockaddr_in *, struct interface *, struct req_pkt *));
+  static	void	do_unrestrict	P((struct sockaddr_in *, struct interface *, struct req_pkt *));
+  static	void	do_restrict	P((struct sockaddr_in *, struct interface *, struct req_pkt *, int));
+! static	void	mon_getlist	P((struct sockaddr_in *, struct interface *, struct req_pkt *));
+  static	void	reset_stats	P((struct sockaddr_in *, struct interface *, struct req_pkt *));
+  static	void	reset_peer	P((struct sockaddr_in *, struct interface *, struct req_pkt *));
+  static	void	do_key_reread	P((struct sockaddr_in *, struct interface *, struct req_pkt *));
+--- 70,77 ----
+  static	void	do_ressubflags	P((struct sockaddr_in *, struct interface *, struct req_pkt *));
+  static	void	do_unrestrict	P((struct sockaddr_in *, struct interface *, struct req_pkt *));
+  static	void	do_restrict	P((struct sockaddr_in *, struct interface *, struct req_pkt *, int));
+! static	void	mon_getlist_0	P((struct sockaddr_in *, struct interface *, struct req_pkt *));
+! static	void	mon_getlist_1	P((struct sockaddr_in *, struct interface *, struct req_pkt *));
+  static	void	reset_stats	P((struct sockaddr_in *, struct interface *, struct req_pkt *));
+  static	void	reset_peer	P((struct sockaddr_in *, struct interface *, struct req_pkt *));
+  static	void	do_key_reread	P((struct sockaddr_in *, struct interface *, struct req_pkt *));
+***************
+*** 125,131 ****
+  	{ REQ_RESADDFLAGS, AUTH, sizeof(struct conf_restrict), do_resaddflags },
+  	{ REQ_RESSUBFLAGS, AUTH, sizeof(struct conf_restrict), do_ressubflags },
+  	{ REQ_UNRESTRICT,  AUTH, sizeof(struct conf_restrict), do_unrestrict },
+! 	{ REQ_MON_GETLIST,	NOAUTH,	0,	mon_getlist },
+  	{ REQ_RESET_STATS, AUTH, sizeof(struct reset_flags), reset_stats },
+  	{ REQ_RESET_PEER,  AUTH, sizeof(struct conf_unpeer), reset_peer },
+  	{ REQ_REREAD_KEYS,	AUTH,	0,	do_key_reread },
+--- 126,133 ----
+  	{ REQ_RESADDFLAGS, AUTH, sizeof(struct conf_restrict), do_resaddflags },
+  	{ REQ_RESSUBFLAGS, AUTH, sizeof(struct conf_restrict), do_ressubflags },
+  	{ REQ_UNRESTRICT,  AUTH, sizeof(struct conf_restrict), do_unrestrict },
+! 	{ REQ_MON_GETLIST,	NOAUTH,	0,	mon_getlist_0 },
+! 	{ REQ_MON_GETLIST_1,	NOAUTH,	0,	mon_getlist_1 },
+  	{ REQ_RESET_STATS, AUTH, sizeof(struct reset_flags), reset_stats },
+  	{ REQ_RESET_PEER,  AUTH, sizeof(struct conf_unpeer), reset_peer },
+  	{ REQ_REREAD_KEYS,	AUTH,	0,	do_key_reread },
+***************
+*** 271,277 ****
+  	/*
+  	 * send packet and bump counters
+  	 */
+! 	sendpkt(srcadr, inter, (struct pkt *)&rpkt, RESP_HEADER_SIZE);
+  	errorcounter[errcode]++;
+  }
+  
+--- 273,279 ----
+  	/*
+  	 * send packet and bump counters
+  	 */
+! 	sendpkt(srcadr, inter, -1, (struct pkt *)&rpkt, RESP_HEADER_SIZE);
+  	errorcounter[errcode]++;
+  }
+  
+***************
+*** 335,341 ****
+  		rpkt.rm_vn_mode = RM_VN_MODE(RESP_BIT, MORE_BIT);
+  		rpkt.auth_seq = AUTH_SEQ(0, seqno);
+  		rpkt.err_nitems = htons((u_short)nitems);
+! 		sendpkt(toaddr, frominter, (struct pkt *)&rpkt,
+  		    RESP_HEADER_SIZE+databytes);
+  		numresppkts++;
+  
+--- 337,343 ----
+  		rpkt.rm_vn_mode = RM_VN_MODE(RESP_BIT, MORE_BIT);
+  		rpkt.auth_seq = AUTH_SEQ(0, seqno);
+  		rpkt.err_nitems = htons((u_short)nitems);
+! 		sendpkt(toaddr, frominter, -1, (struct pkt *)&rpkt,
+  		    RESP_HEADER_SIZE+databytes);
+  		numresppkts++;
+  
+***************
+*** 401,407 ****
+  		rpkt.rm_vn_mode = RM_VN_MODE(RESP_BIT, 0);
+  		rpkt.auth_seq = AUTH_SEQ(0, seqno);
+  		rpkt.err_nitems = htons((u_short)nitems);
+! 		sendpkt(toaddr, frominter, (struct pkt *)&rpkt,
+  		    RESP_HEADER_SIZE+databytes);
+  		numresppkts++;
+  	}
+--- 403,409 ----
+  		rpkt.rm_vn_mode = RM_VN_MODE(RESP_BIT, 0);
+  		rpkt.auth_seq = AUTH_SEQ(0, seqno);
+  		rpkt.err_nitems = htons((u_short)nitems);
+! 		sendpkt(toaddr, frominter, -1, (struct pkt *)&rpkt,
+  		    RESP_HEADER_SIZE+databytes);
+  		numresppkts++;
+  	}
+***************
+*** 658,667 ****
+  			if (debug > 3)
+  				printf("sum: got one\n");
+  #endif
+! 			if (pp->dstadr == any_interface)
+! 				ips->dstadr = 0;
+! 			else
+! 				ips->dstadr = pp->dstadr->sin.sin_addr.s_addr;
+  			ips->srcadr = pp->srcadr.sin_addr.s_addr;
+  			ips->srcport = pp->srcadr.sin_port;
+  			ips->stratum = pp->stratum;
+--- 660,673 ----
+  			if (debug > 3)
+  				printf("sum: got one\n");
+  #endif
+! 			ips->dstadr = (pp->processed) ?
+! 				pp->cast_flags == MDF_BCAST ?
+! 					pp->dstadr->bcast.sin_addr.s_addr:
+! 				pp->cast_flags ?
+! 				pp->dstadr->sin.sin_addr.s_addr ?
+! 					pp->dstadr->sin.sin_addr.s_addr:
+! 					pp->dstadr->bcast.sin_addr.s_addr:
+! 					1 : 5;
+  			ips->srcadr = pp->srcadr.sin_addr.s_addr;
+  			ips->srcport = pp->srcadr.sin_port;
+  			ips->stratum = pp->stratum;
+***************
+*** 725,731 ****
+  		ipl++;
+  		if ((pp = findexistingpeer(&addr, (struct peer *)0)) == 0)
+  			continue;
+! 		ip->dstadr = NSRCADR(&pp->dstadr->sin);
+  		ip->srcadr = NSRCADR(&pp->srcadr);
+  		ip->srcport = NSRCPORT(&pp->srcadr);
+  		ip->flags = 0;
+--- 731,744 ----
+  		ipl++;
+  		if ((pp = findexistingpeer(&addr, (struct peer *)0)) == 0)
+  			continue;
+! 		ip->dstadr = (pp->processed) ?
+! 			pp->cast_flags == MDF_BCAST ?
+! 				pp->dstadr->bcast.sin_addr.s_addr:
+! 			pp->cast_flags ?
+! 			pp->dstadr->sin.sin_addr.s_addr ?
+! 				pp->dstadr->sin.sin_addr.s_addr:
+! 				pp->dstadr->bcast.sin_addr.s_addr:
+! 				2 : 6;
+  		ip->srcadr = NSRCADR(&pp->srcadr);
+  		ip->srcport = NSRCPORT(&pp->srcadr);
+  		ip->flags = 0;
+***************
+*** 819,825 ****
+  		ipl++;
+  		if ((pp = findexistingpeer(&addr, (struct peer *)0)) == 0)
+  			continue;
+! 		ip->dstadr = NSRCADR(&pp->dstadr->sin);
+  		ip->srcadr = NSRCADR(&pp->srcadr);
+  		ip->srcport = NSRCPORT(&pp->srcadr);
+  		ip->flags = 0;
+--- 832,845 ----
+  		ipl++;
+  		if ((pp = findexistingpeer(&addr, (struct peer *)0)) == 0)
+  			continue;
+! 		ip->dstadr = (pp->processed) ?
+! 			pp->cast_flags == MDF_BCAST ?
+! 				pp->dstadr->bcast.sin_addr.s_addr:
+! 			pp->cast_flags ?
+! 			pp->dstadr->sin.sin_addr.s_addr ?
+! 				pp->dstadr->sin.sin_addr.s_addr:
+! 				pp->dstadr->bcast.sin_addr.s_addr:
+! 				3 : 7;
+  		ip->srcadr = NSRCADR(&pp->srcadr);
+  		ip->srcport = NSRCPORT(&pp->srcadr);
+  		ip->flags = 0;
+***************
+*** 1517,1523 ****
+   * mon_getlist - return monitor data
+   */
+  static void
+! mon_getlist(srcadr, inter, inpkt)
+  	struct sockaddr_in *srcadr;
+  	struct interface *inter;
+  	struct req_pkt *inpkt;
+--- 1545,1551 ----
+   * mon_getlist - return monitor data
+   */
+  static void
+! mon_getlist_0(srcadr, inter, inpkt)
+  	struct sockaddr_in *srcadr;
+  	struct interface *inter;
+  	struct req_pkt *inpkt;
+***************
+*** 1529,1535 ****
+  
+  #ifdef DEBUG
+  	if (debug > 2)
+! 		printf("wants monitor list\n");
+  #endif
+  	if (!mon_enabled) {
+  		req_ack(srcadr, inter, inpkt, INFO_ERR_NODATA);
+--- 1557,1563 ----
+  
+  #ifdef DEBUG
+  	if (debug > 2)
+! 		printf("wants monitor 0 list\n");
+  #endif
+  	if (!mon_enabled) {
+  		req_ack(srcadr, inter, inpkt, INFO_ERR_NODATA);
+***************
+*** 1557,1562 ****
+--- 1585,1641 ----
+  }
+  
+  /*
++  * mon_getlist - return monitor data
++  */
++ static void
++ mon_getlist_1(srcadr, inter, inpkt)
++ 	struct sockaddr_in *srcadr;
++ 	struct interface *inter;
++ 	struct req_pkt *inpkt;
++ {
++ 	register struct info_monitor_1 *im;
++ 	register struct mon_data *md;
++ 	extern struct mon_data mon_mru_list;
++ 	extern int mon_enabled;
++ 
++ #ifdef DEBUG
++ 	if (debug > 2)
++ 		printf("wants monitor 1 list\n");
++ #endif
++ 	if (!mon_enabled) {
++ 		req_ack(srcadr, inter, inpkt, INFO_ERR_NODATA);
++ 		return;
++ 	}
++ 
++ 	im = (struct info_monitor_1 *)prepare_pkt(srcadr, inter, inpkt,
++ 	    sizeof(struct info_monitor_1));
++ 	for (md = mon_mru_list.mru_next; md != &mon_mru_list && im != 0;
++ 	    md = md->mru_next) {
++ 		im->lasttime = htonl(current_time - md->lasttime);
++ 		im->firsttime = htonl(current_time - md->firsttime);
++ 		if (md->lastdrop)
++ 			im->lastdrop = htonl(current_time - md->lastdrop);
++ 		else
++ 			im->lastdrop = 0;
++ 		im->count = htonl(md->count);
++ 		im->addr = md->rmtadr;
++ 		im->daddr =	md->cast_flags == MDF_BCAST ?
++ 					md->interface->bcast.sin_addr.s_addr :
++ 				md->cast_flags ?
++ 				md->interface->sin.sin_addr.s_addr ?
++ 					md->interface->sin.sin_addr.s_addr :
++ 					md->interface->bcast.sin_addr.s_addr :
++ 					4;
++ 		im->flags = md->cast_flags;
++ 		im->port = md->rmtport;
++ 		im->mode = md->mode;
++ 		im->version = md->version;
++ 		im = (struct info_monitor_1 *)more_pkt();
++ 	}
++ 	flush_pkt();
++ }
++ 
++ /*
+   * Module entry points and the flags they correspond with
+   */
+  struct reset_entry {
+*** xntpdc/ntpdc.c	Mon May  9 04:52:42 1994
+--- /pogo/ajit/xntp3/xntpdc/ntpdc.c	Thu May 12 17:51:42 1994
+***************
+*** 698,704 ****
+   * doquery - send a request and process the response
+   */
+  int
+! doquery(implcode, reqcode, auth, qitems, qsize, qdata, ritems, rsize, rdata)
+  	int implcode;
+  	int reqcode;
+  	int auth;
+--- 702,709 ----
+   * doquery - send a request and process the response
+   */
+  int
+! doquery(implcode, reqcode, auth, qitems, qsize, qdata, ritems, rsize, rdata,
+! 	quiet_mask)
+  	int implcode;
+  	int reqcode;
+  	int auth;
+***************
+*** 708,713 ****
+--- 713,719 ----
+  	int *ritems;
+  	int *rsize;
+  	char **rdata;
++  	int quiet_mask;
+  {
+  	int res;
+  	char junk[512];
+***************
+*** 751,757 ****
+  	 */
+  	res = getresponse(implcode, reqcode, ritems, rsize, rdata);
+  
+! 	if (res > 0) {
+  		switch(res) {
+  		case INFO_ERR_IMPL:
+  			(void) fprintf(stderr,
+--- 757,764 ----
+  	 */
+  	res = getresponse(implcode, reqcode, ritems, rsize, rdata);
+  
+!  	/* log error message if not told to be quiet */
+!  	if ((res > 0) && (((1 << res) & quiet_mask) == 0)) {
+  		switch(res) {
+  		case INFO_ERR_IMPL:
+  			(void) fprintf(stderr,
+***************
+*** 760,765 ****
+--- 767,773 ----
+  		case INFO_ERR_REQ:
+  			(void) fprintf(stderr,
+  			     "***Server doesn't implement this request\n");
++ 			break;
+  		case INFO_ERR_FMT:
+  			(void) fprintf(stderr,
+  "***Server reports a format error in the received packet (shouldn't happen)\n");
+*** xntpdc/ntpdc.h	Tue Aug 24 21:32:52 1993
+--- /pogo/ajit/xntp3/xntpdc/ntpdc.h	Wed May 11 13:19:56 1994
+***************
+*** 55,59 ****
+  	char *comment;
+  };
+  
+! extern	int	doquery	P((int, int, int, int, int, char *, int *, int *, char **));
+  extern	char *	nntohost	P((U_LONG));
+--- 55,59 ----
+  	char *comment;
+  };
+  
+! extern	int	doquery	P((int, int, int, int, int, char *, int *, int *, char **, int));
+  extern	char *	nntohost	P((U_LONG));
+*** xntpdc/ntpdc_ops.c	Thu May 12 00:56:09 1994
+--- /pogo/ajit/xntp3/xntpdc/ntpdc_ops.c	Wed May 11 13:20:00 1994
+***************
+*** 6,11 ****
+--- 6,12 ----
+  #include <sys/types.h>
+  #include <sys/time.h>
+  #include <netdb.h>
++ #include <arpa/inet.h>
+  
+  #include "ntpdc.h"
+  #include "ntp_control.h"
+***************
+*** 139,146 ****
+  	{ "delrestrict", delrestrict,	{ ADD, ADD, OPT|STR, NO },
+  					{ "address", "mask", "ntpport", "" },
+  			"delete a restrict entry" },
+! 	{ "monlist",	monlist,	{ NO, NO, NO, NO },
+! 					{ "", "", "", "" },
+  		"display data the server's monitor routines have collected" },
+  	{ "monitor",	monitor,	{ STR, NO, NO, NO },
+  					{ "on|off", "", "", "" },
+--- 142,149 ----
+  	{ "delrestrict", delrestrict,	{ ADD, ADD, OPT|STR, NO },
+  					{ "address", "mask", "ntpport", "" },
+  			"delete a restrict entry" },
+! 	{ "monlist",	monlist,	{ OPT|INT, NO, NO, NO },
+! 					{ "version", "", "", "" },
+  		"display data the server's monitor routines have collected" },
+  	{ "monitor",	monitor,	{ STR, NO, NO, NO },
+  					{ "on|off", "", "", "" },
+***************
+*** 289,295 ****
+  	int res;
+  
+  	res = doquery(IMPL_XNTPD, REQ_PEER_LIST, 0, 0, 0, (char *)NULL, &items,
+! 	    &itemsize, (char **)&plist);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+--- 298,304 ----
+  	int res;
+  
+  	res = doquery(IMPL_XNTPD, REQ_PEER_LIST, 0, 0, 0, (char *)NULL, &items,
+! 	    &itemsize, (char **)&plist, 0);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+***************
+*** 351,357 ****
+  	l_fp tempts;
+  
+  	res = doquery(IMPL_XNTPD, REQ_PEER_LIST_SUM, 0, 0, 0, (char *)NULL,
+! 	    &items, &itemsize, (char **)&plist);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+--- 360,366 ----
+  	l_fp tempts;
+  
+  	res = doquery(IMPL_XNTPD, REQ_PEER_LIST_SUM, 0, 0, 0, (char *)NULL,
+! 	    &items, &itemsize, (char **)&plist, 0);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+***************
+*** 559,565 ****
+  
+  	res = doquery(IMPL_XNTPD, REQ_PEER_INFO, 0, qitems,
+  	    sizeof(struct info_peer_list), (char *)plist, &items,
+! 	    &itemsize, (char **)&pp);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+--- 568,574 ----
+  
+  	res = doquery(IMPL_XNTPD, REQ_PEER_INFO, 0, qitems,
+  	    sizeof(struct info_peer_list), (char *)plist, &items,
+! 	    &itemsize, (char **)&pp, 0);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+***************
+*** 603,609 ****
+  
+  	res = doquery(IMPL_XNTPD, REQ_PEER_STATS, 0, qitems,
+  	    sizeof(struct info_peer_list), (char *)plist, &items,
+! 	    &itemsize, (char **)&pp);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+--- 612,618 ----
+  
+  	res = doquery(IMPL_XNTPD, REQ_PEER_STATS, 0, qitems,
+  	    sizeof(struct info_peer_list), (char *)plist, &items,
+! 	    &itemsize, (char **)&pp, 0);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+***************
+*** 675,681 ****
+  	}
+  
+  	res = doquery(IMPL_XNTPD, REQ_LOOP_INFO, 0, 0, 0, (char *)NULL,
+! 	    &items, &itemsize, (char **)&il);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+--- 700,706 ----
+  	}
+  
+  	res = doquery(IMPL_XNTPD, REQ_LOOP_INFO, 0, 0, 0, (char *)NULL,
+! 	    &items, &itemsize, (char **)&il, 0);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+***************
+*** 731,737 ****
+  	l_fp tempts;
+  
+  	res = doquery(IMPL_XNTPD, REQ_SYS_INFO, 0, 0, 0, (char *)NULL,
+! 	    &items, &itemsize, (char **)&is);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+--- 756,762 ----
+  	l_fp tempts;
+  
+  	res = doquery(IMPL_XNTPD, REQ_SYS_INFO, 0, 0, 0, (char *)NULL,
+! 	    &items, &itemsize, (char **)&is, 0);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+ 
+***************
+*** 812,818 ****
+  	int res;
+  
+  	res = doquery(IMPL_XNTPD, REQ_SYS_STATS, 0, 0, 0, (char *)NULL,
+! 	    &items, &itemsize, (char **)&ss);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+--- 840,846 ----
+  	int res;
+  
+  	res = doquery(IMPL_XNTPD, REQ_SYS_STATS, 0, 0, 0, (char *)NULL,
+! 	    &items, &itemsize, (char **)&ss, 0);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+***************
+*** 869,875 ****
+  	int res;
+  
+  	res = doquery(IMPL_XNTPD, REQ_IO_STATS, 0, 0, 0, (char *)NULL,
+! 	    &items, &itemsize, (char **)&io);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+--- 897,903 ----
+  	int res;
+  
+  	res = doquery(IMPL_XNTPD, REQ_IO_STATS, 0, 0, 0, (char *)NULL,
+! 	    &items, &itemsize, (char **)&io, 0);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+***************
+*** 924,930 ****
+  	int res;
+  
+  	res = doquery(IMPL_XNTPD, REQ_MEM_STATS, 0, 0, 0, (char *)NULL,
+! 	    &items, &itemsize, (char **)&mem);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+--- 952,958 ----
+  	int res;
+  
+  	res = doquery(IMPL_XNTPD, REQ_MEM_STATS, 0, 0, 0, (char *)NULL,
+! 	    &items, &itemsize, (char **)&mem, 0);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+***************
+*** 975,981 ****
+  	int res;
+  
+  	res = doquery(IMPL_XNTPD, REQ_TIMER_STATS, 0, 0, 0, (char *)NULL,
+! 	    &items, &itemsize, (char **)&tim);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+--- 1003,1009 ----
+  	int res;
+  
+  	res = doquery(IMPL_XNTPD, REQ_TIMER_STATS, 0, 0, 0, (char *)NULL,
+! 	    &items, &itemsize, (char **)&tim, 0);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+***************
+*** 1099,1105 ****
+  
+  	res = doquery(IMPL_XNTPD, REQ_CONFIG, 1, 1,
+  	    sizeof(struct conf_peer), (char *)&cpeer, &items,
+! 	    &itemsize, &dummy);
+  	
+  	if (res == 0)
+  		(void) fprintf(fp, "done!\n");
+--- 1127,1133 ----
+  
+  	res = doquery(IMPL_XNTPD, REQ_CONFIG, 1, 1,
+  	    sizeof(struct conf_peer), (char *)&cpeer, &items,
+! 	    &itemsize, &dummy, 0);
+  	
+  	if (res == 0)
+  		(void) fprintf(fp, "done!\n");
+***************
+*** 1129,1135 ****
+  
+  	res = doquery(IMPL_XNTPD, REQ_UNCONFIG, 1, qitems,
+  	    sizeof(struct conf_unpeer), (char *)plist, &items,
+! 	    &itemsize, &dummy);
+  	
+  	if (res == 0)
+  		(void) fprintf(fp, "done!\n");
+--- 1157,1163 ----
+  
+  	res = doquery(IMPL_XNTPD, REQ_UNCONFIG, 1, qitems,
+  	    sizeof(struct conf_unpeer), (char *)plist, &items,
+! 	    &itemsize, &dummy, 0);
+  	
+  	if (res == 0)
+  		(void) fprintf(fp, "done!\n");
+***************
+*** 1203,1209 ****
+  
+  	res = doquery(IMPL_XNTPD, req, 1, 1,
+  	    sizeof(struct conf_sys_flags), (char *)&sys, &items,
+! 	    &itemsize, &dummy);
+  	
+  	if (res == 0)
+  		(void) fprintf(fp, "done!\n");
+--- 1231,1237 ----
+  
+  	res = doquery(IMPL_XNTPD, req, 1, 1,
+  	    sizeof(struct conf_sys_flags), (char *)&sys, &items,
+! 	    &itemsize, &dummy, 0);
+  	
+  	if (res == 0)
+  		(void) fprintf(fp, "done!\n");
+***************
+*** 1261,1267 ****
+  	static char *comma = ", ";
+  
+  	res = doquery(IMPL_XNTPD, REQ_GET_RESTRICT, 0, 0, 0, (char *)NULL,
+! 	    &items, &itemsize, (char **)&rl);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+--- 1289,1295 ----
+  	static char *comma = ", ";
+  
+  	res = doquery(IMPL_XNTPD, REQ_GET_RESTRICT, 0, 0, 0, (char *)NULL,
+! 	    &items, &itemsize, (char **)&rl, 0);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+***************
+*** 1430,1436 ****
+  
+  	res = doquery(IMPL_XNTPD, req_code, 1, 1,
+  	    sizeof(struct conf_restrict), (char *)&cres, &items,
+! 	    &itemsize, &dummy);
+  	
+  	if (res == 0)
+  		(void) fprintf(fp, "done!\n");
+--- 1458,1464 ----
+  
+  	res = doquery(IMPL_XNTPD, req_code, 1, 1,
+  	    sizeof(struct conf_restrict), (char *)&cres, &items,
+! 	    &itemsize, &dummy, 0);
+  	
+  	if (res == 0)
+  		(void) fprintf(fp, "done!\n");
+***************
+*** 1447,1460 ****
+  	struct parse *pcmd;
+  	FILE *fp;
+  {
+! 	struct info_monitor *ml;
+! 	struct old_info_monitor *oml;
+  	int items;
+  	int itemsize;
+  	int res;
+  
+! 	res = doquery(IMPL_XNTPD, REQ_MON_GETLIST, 0, 0, 0, (char *)NULL,
+! 	    &items, &itemsize, (char **)&ml);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+--- 1475,1500 ----
+  	struct parse *pcmd;
+  	FILE *fp;
+  {
+! 	char *struct_star;
+! 	struct in_addr addr;
+  	int items;
+  	int itemsize;
+  	int res;
++ 	int version = -1;
+  
+! 	if (pcmd->nargs > 0) {
+! 		version = pcmd->argval[0].ival;
+! 	}
+! 
+! 	res = doquery(IMPL_XNTPD,
+! 	    (version == 1 || version == -1) ? REQ_MON_GETLIST_1 :
+! 	    REQ_MON_GETLIST, 0, 0, 0, (char *)NULL,
+! 	    &items, &itemsize, &struct_star,
+! 	    (version < 0) ? (1 << INFO_ERR_REQ) : 0);
+! 
+! 	if (res == INFO_ERR_REQ && version < 0) 
+! 	  res = doquery(IMPL_XNTPD, REQ_MON_GETLIST, 0, 0, 0, (char *)NULL,
+! 	    &items, &itemsize, &struct_star, 0);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+***************
+*** 1462,1477 ****
+  	if (!checkitems(items, fp))
+  		return;
+  
+! 	if (itemsize == sizeof(struct info_monitor)) {
+  
+  		(void) fprintf(fp,
+! 			       "     address          port     count  mode version  lastdrop lasttime firsttime\n");
+  		(void) fprintf(fp,
+  			       "===============================================================================\n");
+  		while (items > 0) {
+! 			(void) fprintf(fp, "%-20.20s %5d %9d %4d   %3d %9u %9u %9u\n",
+  				       nntohost(ml->addr),
+  				       ntohs(ml->port),
+  				       ntohl(ml->count),
+  				       ml->mode,
+  				       ml->version,
+--- 1502,1521 ----
+  	if (!checkitems(items, fp))
+  		return;
+  
+! 	if (itemsize == sizeof(struct info_monitor_1)) {
+! 		struct info_monitor_1 *ml = (struct info_monitor_1 *) struct_star;
+  
+  		(void) fprintf(fp,
+! 			       "remote address          port local address      count m ver drop   last   first\n");
+  		(void) fprintf(fp,
+  			       "===============================================================================\n");
+  		while (items > 0) {
+! 			addr.s_addr = ml->daddr;
+! 			(void) fprintf(fp, 
+! 				"%-22.22s %5d %-15s %8d %1d %1d %6u %6u %7u\n",
+  				       nntohost(ml->addr),
+  				       ntohs(ml->port),
++ 				       inet_ntoa(addr),
+  				       ntohl(ml->count),
+  				       ml->mode,
+  				       ml->version,
+***************
+*** 1481,1495 ****
+  			ml++;
+  			items--;
+  		}
+! 	} else {
+! 		if (itemsize != sizeof(struct old_info_monitor)) {
+! 			/* issue warning according to new info_monitor size */
+! 			checkitemsize(itemsize, sizeof(struct info_monitor));
+! 			return;
+! 		}
+  
+- 		oml = (struct old_info_monitor *)ml;
+  		(void) fprintf(fp,
+  			       "     address          port     count  mode version  lasttime firsttime\n");
+  		(void) fprintf(fp,
+  			       "======================================================================\n");
+--- 1525,1555 ----
+  			ml++;
+  			items--;
+  		}
+! 	} else if (itemsize == sizeof(struct info_monitor)) {
+! 		struct info_monitor *ml = (struct info_monitor *) struct_star;
+  
+  		(void) fprintf(fp,
++ 			       "     address               port     count mode ver lastdrop  lasttime firsttime\n");
++ 		(void) fprintf(fp,
++ 			       "===============================================================================\n");
++ 		while (items > 0) {
++ 			addr.s_addr = ml->lastdrop;
++ 			(void) fprintf(fp,
++ 				"%-25.25s %5d %9d %4d %2d %9u %9u %9u\n",
++ 				       nntohost(ml->addr),
++ 				       ntohs(ml->port),
++ 				       ntohl(ml->count),
++ 				       ml->mode,
++ 				       ml->version,
++ 				       ntohl(ml->lastdrop),
++ 				       ntohl(ml->lasttime),
++ 				       ntohl(ml->firsttime));
++ 			ml++;
++ 			items--;
++ 		}
++ 	} else if (itemsize == sizeof(struct old_info_monitor)) {
++ 		struct old_info_monitor *oml = (struct old_info_monitor *)struct_star;
++ 		(void) fprintf(fp,
+  			       "     address          port     count  mode version  lasttime firsttime\n");
+  		(void) fprintf(fp,
+  			       "======================================================================\n");
+***************
+*** 1505,1510 ****
+--- 1565,1573 ----
+  			oml++;
+  			items--;
+  		}
++ 	} else {
++ 		/* issue warning according to new info_monitor size */
++ 		checkitemsize(itemsize, sizeof(struct info_monitor));
+  	}
+  }
+  
+***************
+*** 1533,1539 ****
+  	}
+  
+  	res = doquery(IMPL_XNTPD, req_code, 1, 0, 0, (char *)0,
+! 	    &items, &itemsize, &dummy);
+  	
+  	if (res == 0)
+  		(void) fprintf(fp, "done!\n");
+--- 1596,1602 ----
+  	}
+  
+  	res = doquery(IMPL_XNTPD, req_code, 1, 0, 0, (char *)0,
+! 	    &items, &itemsize, &dummy, 0);
+  	
+  	if (res == 0)
+  		(void) fprintf(fp, "done!\n");
+***************
+*** 1597,1603 ****
+  
+  	res = doquery(IMPL_XNTPD, REQ_RESET_STATS, 1, 1,
+  	    sizeof(struct reset_flags), (char *)&rflags, &items,
+! 	    &itemsize, &dummy);
+  	
+  	if (res == 0)
+  		(void) fprintf(fp, "done!\n");
+--- 1660,1666 ----
+  
+  	res = doquery(IMPL_XNTPD, REQ_RESET_STATS, 1, 1,
+  	    sizeof(struct reset_flags), (char *)&rflags, &items,
+! 	    &itemsize, &dummy, 0);
+  	
+  	if (res == 0)
+  		(void) fprintf(fp, "done!\n");
+***************
+*** 1628,1634 ****
+  
+  	res = doquery(IMPL_XNTPD, REQ_RESET_PEER, 1, qitems,
+  	    sizeof(struct conf_unpeer), (char *)plist, &items,
+! 	    &itemsize, &dummy);
+  	
+  	if (res == 0)
+  		(void) fprintf(fp, "done!\n");
+--- 1691,1697 ----
+  
+  	res = doquery(IMPL_XNTPD, REQ_RESET_PEER, 1, qitems,
+  	    sizeof(struct conf_unpeer), (char *)plist, &items,
+! 	    &itemsize, &dummy, 0);
+  	
+  	if (res == 0)
+  		(void) fprintf(fp, "done!\n");
+***************
+*** 1650,1656 ****
+  	int res;
+  
+  	res = doquery(IMPL_XNTPD, REQ_REREAD_KEYS, 1, 0, 0, (char *)0,
+! 	    &items, &itemsize, &dummy);
+  	
+  	if (res == 0)
+  		(void) fprintf(fp, "done!\n");
+--- 1713,1719 ----
+  	int res;
+  
+  	res = doquery(IMPL_XNTPD, REQ_REREAD_KEYS, 1, 0, 0, (char *)0,
+! 	    &items, &itemsize, &dummy, 0);
+  	
+  	if (res == 0)
+  		(void) fprintf(fp, "done!\n");
+***************
+*** 1705,1711 ****
+  	}
+  
+  	res = doquery(IMPL_XNTPD, req, 1, ritems, sizeof(U_LONG),
+! 	    (char *)keyids, &items, &itemsize, &dummy);
+  	
+  	if (res == 0)
+  		(void) fprintf(fp, "done!\n");
+--- 1814,1820 ----
+  	}
+  
+  	res = doquery(IMPL_XNTPD, req, 1, ritems, sizeof(U_LONG),
+! 	    (char *)keyids, &items, &itemsize, &dummy, 0);
+  	
+  	if (res == 0)
+  		(void) fprintf(fp, "done!\n");
+***************
+*** 1729,1735 ****
+  	int res;
+  
+  	res = doquery(IMPL_XNTPD, REQ_AUTHINFO, 0, 0, 0, (char *)NULL,
+! 	    &items, &itemsize, (char **)&ia);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+--- 1838,1844 ----
+  	int res;
+  
+  	res = doquery(IMPL_XNTPD, REQ_AUTHINFO, 0, 0, 0, (char *)NULL,
+! 	    &items, &itemsize, (char **)&ia, 0);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+***************
+*** 1772,1778 ****
+  	int res;
+  
+  	res = doquery(IMPL_XNTPD, REQ_TRAPS, 0, 0, 0, (char *)NULL,
+! 	    &items, &itemsize, (char **)&it);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+--- 1883,1889 ----
+  	int res;
+  
+  	res = doquery(IMPL_XNTPD, REQ_TRAPS, 0, 0, 0, (char *)NULL,
+! 	    &items, &itemsize, (char **)&it, 0);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+***************
+*** 1858,1864 ****
+  	}
+  
+  	res = doquery(IMPL_XNTPD, req, 1, 1, sizeof(struct conf_trap),
+! 	    (char *)&ctrap, &items, &itemsize, &dummy);
+  	
+  	if (res == 0)
+  		(void) fprintf(fp, "done!\n");
+--- 1969,1975 ----
+  	}
+  
+  	res = doquery(IMPL_XNTPD, req, 1, 1, sizeof(struct conf_trap),
+! 	    (char *)&ctrap, &items, &itemsize, &dummy, 0);
+  	
+  	if (res == 0)
+  		(void) fprintf(fp, "done!\n");
+***************
+*** 1911,1917 ****
+  	key = htonl(pcmd->argval[0].uval);
+  
+  	res = doquery(IMPL_XNTPD, req, 1, 1, sizeof(U_LONG),
+! 	    (char *)&key, &items, &itemsize, &dummy);
+  	
+  	if (res == 0)
+  		(void) fprintf(fp, "done!\n");
+--- 2022,2028 ----
+  	key = htonl(pcmd->argval[0].uval);
+  
+  	res = doquery(IMPL_XNTPD, req, 1, 1, sizeof(U_LONG),
+! 	    (char *)&key, &items, &itemsize, &dummy, 0);
+  	
+  	if (res == 0)
+  		(void) fprintf(fp, "done!\n");
+***************
+*** 1935,1941 ****
+  	int res;
+  
+  	res = doquery(IMPL_XNTPD, REQ_GET_CTLSTATS, 0, 0, 0, (char *)NULL,
+! 	    &items, &itemsize, (char **)&ic);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+--- 2046,2052 ----
+  	int res;
+  
+  	res = doquery(IMPL_XNTPD, REQ_GET_CTLSTATS, 0, 0, 0, (char *)NULL,
+! 	    &items, &itemsize, (char **)&ic, 0);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+***************
+*** 2013,2019 ****
+  	l_fp ts;
+  
+  	res = doquery(IMPL_XNTPD, REQ_GET_LEAPINFO, 0, 0, 0, (char *)NULL,
+! 	    &items, &itemsize, (char **)&il);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+--- 2124,2130 ----
+  	l_fp ts;
+  
+  	res = doquery(IMPL_XNTPD, REQ_GET_LEAPINFO, 0, 0, 0, (char *)NULL,
+! 	    &items, &itemsize, (char **)&il, 0);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+***************
+*** 2080,2086 ****
+  
+  	res = doquery(IMPL_XNTPD, REQ_GET_CLOCKINFO, 0, qitems,
+  	    sizeof(U_LONG), (char *)clist, &items,
+! 	    &itemsize, (char **)&cl);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+--- 2191,2197 ----
+  
+  	res = doquery(IMPL_XNTPD, REQ_GET_CLOCKINFO, 0, qitems,
+  	    sizeof(U_LONG), (char *)clist, &items,
+! 	    &itemsize, (char **)&cl, 0);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+***************
+*** 2204,2210 ****
+  
+  	res = doquery(IMPL_XNTPD, REQ_SET_CLKFUDGE, 1, 1,
+  	    sizeof(struct conf_fudge), (char *)&fudgedata, &items,
+! 	    &itemsize, &dummy);
+  
+  	if (res == 0)
+  		(void) fprintf(fp, "done!\n");
+--- 2315,2321 ----
+  
+  	res = doquery(IMPL_XNTPD, REQ_SET_CLKFUDGE, 1, 1,
+  	    sizeof(struct conf_fudge), (char *)&fudgedata, &items,
+! 	    &itemsize, &dummy, 0);
+  
+  	if (res == 0)
+  		(void) fprintf(fp, "done!\n");
+***************
+*** 2236,2242 ****
+  
+  	res = doquery(IMPL_XNTPD, REQ_GET_CLKBUGINFO, 0, qitems,
+  	    sizeof(U_LONG), (char *)clist, &items,
+! 	    &itemsize, (char **)&cl);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+--- 2347,2353 ----
+  
+  	res = doquery(IMPL_XNTPD, REQ_GET_CLKBUGINFO, 0, qitems,
+  	    sizeof(U_LONG), (char *)clist, &items,
+! 	    &itemsize, (char **)&cl, 0);
+  	
+  	if (res != 0 && items == 0)
+  		return;
+***************
+*** 2318,2324 ****
+  	precision = htonl(pcmd->argval[0].ival);
+  
+  	res = doquery(IMPL_XNTPD, REQ_SET_PRECISION, 1, 1, sizeof(LONG),
+! 	    (char *)&precision, &items, &itemsize, &dummy);
+  	
+  	if (res == 0)
+  		(void) fprintf(fp, "done!\n");
+--- 2429,2435 ----
+  	precision = htonl(pcmd->argval[0].ival);
+  
+  	res = doquery(IMPL_XNTPD, REQ_SET_PRECISION, 1, 1, sizeof(LONG),
+! 	    (char *)&precision, &items, &itemsize, &dummy, 0);
+  	
+  	if (res == 0)
+  		(void) fprintf(fp, "done!\n");
+***************
+*** 2340,2346 ****
+  	int res;
+  
+  	res = doquery(IMPL_XNTPD, REQ_GET_KERNEL, 0, 0, 0, (char *)NULL,
+! 	    &items, &itemsize, (char **)&ik);
+  	if (res != 0 && items == 0)
+  	    return;
+  	if (!check1item(items, fp))
+--- 2451,2457 ----
+  	int res;
+  
+  	res = doquery(IMPL_XNTPD, REQ_GET_KERNEL, 0, 0, 0, (char *)NULL,
+! 	    &items, &itemsize, (char **)&ik, 0);
+  	if (res != 0 && items == 0)
+  	    return;
+  	if (!check1item(items, fp))
+*** xntpdc/version.c	Thu May 12 13:21:49 1994
+--- /pogo/ajit/xntp3/xntpdc/version.c	Thu May 12 18:01:39 1994

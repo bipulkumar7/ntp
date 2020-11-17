@@ -1,0 +1,78 @@
+
+Received: from louie.udel.edu by huey.udel.edu id aa14508; 31 May 94 18:08 EDT
+Received: from faui45.informatik.uni-erlangen.de by louie.udel.edu id aa29758;
+          31 May 94 18:01 EDT
+Received: from faui43.informatik.uni-erlangen.de by uni-erlangen.de with SMTP;
+	id AA28390 (5.65c-6/7.3v-FAU); Wed, 1 Jun 1994 00:01:19 +0200
+Received: by immd4.informatik.uni-erlangen.de;
+	id AA11288 (5.65c-6/7.3m-FAU); Wed, 1 Jun 1994 00:01:17 +0200
+From: Frank Kardel <Frank.Kardel@informatik.uni-erlangen.de>
+Message-Id: <199405312201.AA11288@faui43.informatik.uni-erlangen.de>
+Subject: minore parse bug...
+To: mills@udel.edu
+Date: Wed, 1 Jun 94 0:01:15 DST
+X-Mailer: ELM [version 2.3 PL11]
+
+Hi, Dave !
+
+This a a very small one 8-)
+===================================================================
+RCS file: /src/NTP/REPOSITORY/v3/parse/clk_rawdcf.c,v
+retrieving revision 3.15
+retrieving revision 3.16
+diff -c -r3.15 -r3.16
+*** parse/clk_rawdcf.c:3.15	1994/05/30 10:20:01
+--- parse/clk_rawdcf.c		1994/05/31 20:02:40
+***************
+*** 1,8 ****
+  #if defined(REFCLOCK) && (defined(PARSE) || defined(PARSEPPS)) && defined(CLOCK_RAWDCF)
+  /*
+!  * /src/NTP/REPOSITORY/v3/parse/clk_rawdcf.c,v 3.15 1994/05/30 10:20:01 kardel Exp
+   *  
+!  * clk_rawdcf.c,v 3.15 1994/05/30 10:20:01 kardel Exp
+   *
+   * Raw DCF77 pulse clock support
+   *
+--- 1,8 ----
+  #if defined(REFCLOCK) && (defined(PARSE) || defined(PARSEPPS)) && defined(CLOCK_RAWDCF)
+  /*
+!  * /src/NTP/REPOSITORY/v3/parse/clk_rawdcf.c,v 3.16 1994/05/31 20:02:40 kardel Exp
+   *  
+!  * clk_rawdcf.c,v 3.16 1994/05/31 20:02:40 kardel Exp
+   *
+   * Raw DCF77 pulse clock support
+   *
+***************
+*** 470,476 ****
+    register int status;
+    register timestamp_t *ptime;
+  {
+!   if (!status)
+      {
+        parseio->parse_dtime.parse_ptime  = *ptime;
+        parseio->parse_dtime.parse_state |= PARSEB_PPS|PARSEB_S_PPS;
+--- 470,476 ----
+    register int status;
+    register timestamp_t *ptime;
+  {
+!   if (status)
+      {
+        parseio->parse_dtime.parse_ptime  = *ptime;
+        parseio->parse_dtime.parse_state |= PARSEB_PPS|PARSEB_S_PPS;
+***************
+*** 530,535 ****
+--- 530,538 ----
+   * History:
+   *
+   * $Log: clk_rawdcf.c,v $
++  * Revision 3.16  1994/05/31  20:02:40  kardel
++  * sync on ONE transition
++  *
+   * Revision 3.15  1994/05/30  10:20:01  kardel
+   * LONG cleanup
+   *
+-- 
+	   Frank Kardel (kardel@informatik.uni-erlangen.de)
+    All SCSI disks will from now on be required to send an email
+         notice 24 hours prior to complete hardware failure!
+

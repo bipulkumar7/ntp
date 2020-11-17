@@ -1,0 +1,38 @@
+
+Received: from louie.udel.edu by huey.udel.edu id aa19302; 30 Apr 94 0:45 EDT
+Received: from swan.cl.cam.ac.uk by louie.udel.edu id aa01340;
+          30 Apr 94 0:41 EDT
+Received: from labes.cl.cam.ac.uk (user pb (rfc931)) by swan.cl.cam.ac.uk 
+          with SMTP (PP-6.5) to cl; Sat, 30 Apr 1994 05:41:06 +0100
+To: Mills@udel.edu
+cc: Piete Brooks <Piete.Brooks@cl.cam.ac.uk>, ajit@udel.edu
+Subject: xntp3.3t:P1: spurious ";" ?
+In-reply-to: Your message of Fri, 29 Apr 1994 23:57:15 -0400. <9404292357.aa19044@huey.udel.edu>
+Date: Sat, 30 Apr 1994 05:41:01 +0100
+From: Piete Brooks <Piete.Brooks@cl.cam.ac.uk>
+Message-ID: <"swan.cl.cam.:113330:940430044111"@cl.cam.ac.uk>
+
+This is an old one that I appear not to have sent you ....
+
+*** xntpd/ntp_config.c	Mon Apr 18 01:41:32 1994
+--- /tmp/NEW	Sat Apr 30 05:37:08 1994
+***************
+*** 807,813 ****
+  		case CONFIG_MULTICASTCLIENT:
+  			if (ntokens > 1) {
+  				for (i = 1; i < ntokens; i++) {
+! 					if (getnetnum(tokens[i], &peeraddr, 1));
+  						proto_config(PROTO_MULTICAST_ADD,
+  						    peeraddr.sin_addr.s_addr);
+  				}
+--- 807,813 ----
+  		case CONFIG_MULTICASTCLIENT:
+  			if (ntokens > 1) {
+  				for (i = 1; i < ntokens; i++) {
+! 					if (getnetnum(tokens[i], &peeraddr, 1))
+  						proto_config(PROTO_MULTICAST_ADD,
+  						    peeraddr.sin_addr.s_addr);
+  				}
+
+Should this code be enabled even if MCAST isn't defined ?
+

@@ -1,0 +1,36 @@
+
+Received: from louie.udel.edu by huey.udel.edu id aa19409; 30 Apr 94 1:08 EDT
+Received: from swan.cl.cam.ac.uk by louie.udel.edu id aa02044;
+          30 Apr 94 0:58 EDT
+Received: from labes.cl.cam.ac.uk (user pb (rfc931)) by swan.cl.cam.ac.uk 
+          with SMTP (PP-6.5) to cl; Sat, 30 Apr 1994 05:58:25 +0100
+To: Mills@udel.edu
+cc: Piete Brooks <Piete.Brooks@cl.cam.ac.uk>, ajit@udel.edu
+Subject: xntp3.3t:P3
+In-reply-to: Your message of Fri, 29 Apr 1994 23:57:15 -0400. <9404292357.aa19044@huey.udel.edu>
+Date: Sat, 30 Apr 1994 05:58:21 +0100
+From: Piete Brooks <Piete.Brooks@cl.cam.ac.uk>
+Message-ID: <"swan.cl.cam.:116960:940430045828"@cl.cam.ac.uk>
+
+Any idea why it was including this file ??
+
+*** ../include/ntp_fp.h.ln	Tue Aug 24 22:25:28 1993
+--- ../include/ntp_fp.h	Sat Apr 30 05:54:37 1994
+***************
+*** 4,10 ****
+  
+  #include <sys/types.h>
+  #include <sys/socket.h>
+! #include <netinet/in.h>
+  
+  #include "ntp_types.h"
+  
+--- 4,10 ----
+  
+  #include <sys/types.h>
+  #include <sys/socket.h>
+! /* #include <netinet/in.h> */
+  
+  #include "ntp_types.h"
+  
+

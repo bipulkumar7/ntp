@@ -1,0 +1,45 @@
+
+Received: from louie.udel.edu by huey.udel.edu id aa19328; 30 Apr 94 0:53 EDT
+Received: from swan.cl.cam.ac.uk by louie.udel.edu id aa01554;
+          30 Apr 94 0:48 EDT
+Received: from labes.cl.cam.ac.uk (user pb (rfc931)) by swan.cl.cam.ac.uk 
+          with SMTP (PP-6.5) to cl; Sat, 30 Apr 1994 05:48:12 +0100
+To: Mills@udel.edu
+cc: Piete Brooks <Piete.Brooks@cl.cam.ac.uk>, ajit@udel.edu
+Subject: xntp3.3t:P2 STILL ???????????? Third time lucky !!!!
+In-reply-to: Your message of Fri, 29 Apr 1994 23:57:15 -0400. <9404292357.aa19044@huey.udel.edu>
+Date: Sat, 30 Apr 1994 05:48:08 +0100
+From: Piete Brooks <Piete.Brooks@cl.cam.ac.uk>
+Message-ID: <"swan.cl.cam.:114860:940430044815"@cl.cam.ac.uk>
+
+*** xntpd/ntp_loopfilter.c.orig	Tue Apr 19 02:00:35 1994
+--- xntpd/ntp_loopfilter.c	Mon Apr 25 19:45:32 1994
+***************
+*** 152,158 ****
+  	( i == 300 ? B300 : 0 ))))))))
+  
+  #define PPS_BAUD B38400		/* default serial port speed */
+! timecode */
+  #define	PPS_DEV	"/dev/pps"	/* pps port */
+  #define PPS_FAC 3		/* pps shift (log2 trimmed samples) */
+  #define PPS_TRIM 6		/* samples trimmed from median filter */
+--- 152,159 ----
+  	( i == 300 ? B300 : 0 ))))))))
+  
+  #define PPS_BAUD B38400		/* default serial port speed */
+! #define PPS_MAXAGE 120		/* seconds after which we disbelieve pps */
+! #define PPS_MAXUPDATE 600	/* seconds after which we disbelieve timecode */
+  #define	PPS_DEV	"/dev/pps"	/* pps port */
+  #define PPS_FAC 3		/* pps shift (log2 trimmed samples) */
+  #define PPS_TRIM 6		/* samples trimmed from median filter */
+***************
+*** 915,921 ****
+  	int i, j;		/* temp ints */
+  	LONG sort[NPPS];	/* temp array for sorting */
+  	l_fp lftemp, ts;	/* l_fp temps */
+- 	u_fp utemp;		/* u_fp temp */
+  	LONG ltemp;		/* long temp */
+        
+  	/*
+--- 916,921 ----
+

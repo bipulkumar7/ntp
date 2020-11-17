@@ -1,0 +1,78 @@
+
+Received: from louie.udel.edu by huey.udel.edu id aa23336; 16 May 94 17:18 EDT
+Received: from swan.cl.cam.ac.uk by louie.udel.edu id aa14861;
+          16 May 94 17:09 EDT
+Received: from labes.cl.cam.ac.uk (user pb (rfc931)) by swan.cl.cam.ac.uk 
+          with SMTP (PP-6.5) to cl; Mon, 16 May 1994 21:58:09 +0100
+To: Mills@udel.edu
+cc: Piete Brooks <Piete.Brooks@cl.cam.ac.uk>
+Subject: Re: Comes now v: ntpq/xntpd man pages + [bm] client *&* server
+In-reply-to: Your message of Mon, 16 May 1994 15:55:36 -0400. <9405161555.aa22833@huey.udel.edu>
+Date: Mon, 16 May 1994 21:57:56 +0100
+From: Piete Brooks <Piete.Brooks@cl.cam.ac.uk>
+Message-ID: <"swan.cl.cam.:052830:940516205817"@cl.cam.ac.uk>
+
+> You added functionality to both ntpq and xntpdc. My comment about
+> noodling the documentation was meant to stir you to document that,
+> especially the "t" column.
+
+OK -- so not related to earlier messages ...
+
+It's a pain that xntpdc.8 has such **LONG** lines !!!!
+
+*** ntpq.8.DIST	Mon Feb 21 03:25:21 1994
+--- ntpq.8	Mon May 16 21:44:47 1994
+***************
+*** 514,516 ****
+  of the remote peer, the reference ID (0.0.0.0 if the refID is unknown),
+! the stratum of the remote peer, the polling interval,
+  in seconds, the reachability
+--- 514,517 ----
+  of the remote peer, the reference ID (0.0.0.0 if the refID is unknown),
+! the stratum of the remote peer, the type of the peer (local, unicast, multicast
+! or broadcast), when the last packet was received, the polling interval,
+  in seconds, the reachability
+*** xntpdc.8.DIST	Sun May 15 04:30:36 1994
+--- xntpdc.8	Mon May 16 21:55:59 1994
+***************
+*** 356,357 ****
+--- 356,360 ----
+  .B monlist
++ [
++ .I version
++ ]
+  .PP
+***************
+*** 359,360 ****
+--- 362,364 ----
+  facility.
++ The version number should not normally need to be specified.
+  .PP
+
+> I don't think it makes sense to configure a server as both a multicast
+> sender and multicast client,
+
+Why ?
+
+> unless the sender's own transmissions can be suppresed before processing.
+
+Hmmm .... "it seems to work" ....
+
+> It does make sense for the sender to listen to other senders in a cooperative
+> network.
+
+Good oh !
+
+> Come to think 
+> of it, it might be useful for the sender in fact to see its own packets,
+> which will look like loopback packets, as long as the time is never
+> believed.
+
+Great stuff !
+
+> I continue to hold the view that a provision to discover a multicast
+> packet as distinct from a broadcast packet may not be very useful,
+> although I'm sure you can find a scenario to refute that position.
+
+OK -- we need a not commital word to mean the two (other than "non uni cast")
+

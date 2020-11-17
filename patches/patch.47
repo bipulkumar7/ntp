@@ -1,0 +1,382 @@
+
+Received: from snow-white.ee.udel.edu by huey.udel.edu id aa22080;
+          25 Apr 94 14:14 EDT
+Received: from louie.udel.edu by snow-white.ee.udel.edu id aa07160;
+          25 Apr 94 14:12 EDT
+Received: from snow-white.ee.udel.edu by malarky.udel.edu id aa13211;
+          25 Apr 94 18:11 GMT
+To: mills@udel.edu
+cc: ajit@albert.udel.edu
+Subject: latest diffs
+Date: Mon, 25 Apr 1994 18:11:25 +0000
+From: Ajit Thyagarajan <ajit@ee.udel.edu>
+Message-ID:  <9404251811.aa13211@malarky.udel.edu>
+
+Dave,
+
+the latest diffs are here!
+
+
+
+*** include/ntp.h	Sun Apr 17 22:34:10 1994
+--- /m/pogo/ajit/xntp3/include/ntp.h	Sun Apr 24 05:59:47 1994
+***************
+*** 252,257 ****
+--- 252,263 ----
+  	U_LONG estbdelay;		/* broadcast delay, as a ts fraction */
+  
+  	/*
++ 	 * multicast parameters
++ 	 */
++ 	u_char mc_count;		/* packet count in C/S mode */
++ 	u_char mc_flags;		/* multicast flags */
++ 
++ 	/*
+  	 * statistic counters
+  	 */
+  	U_LONG timereset;		/* time stat counters were reset */
+***************
+*** 298,304 ****
+  #define	MODE_PRIVATE	7	/* implementation defined function */
+  
+  #define	MODE_BCLIENT	8	/* a pseudo mode, used internally */
+! 
+  
+  /*
+   * Values for peer.stratum, sys_stratum
+--- 304,310 ----
+  #define	MODE_PRIVATE	7	/* implementation defined function */
+  
+  #define	MODE_BCLIENT	8	/* a pseudo mode, used internally */
+! #define MODE_MCLIENT	9	/* multicast mode (not yet used) */
+  
+  /*
+   * Values for peer.stratum, sys_stratum
+
+
+
+*** xntpd/ntp_io.c	Sun Apr 24 19:12:32 1994
+--- /m/pogo/ajit/xntp3/xntpd/ntp_io.c	Mon Apr 25 17:51:39 1994
+***************
+*** 9,16 ****
+  #include <sys/param.h>
+  #include <sys/ioctl.h>
+  #include <sys/time.h>
+- #include "in.h"
+  
+  #include "ntpd.h"
+  #include "ntp_select.h"
+  #include "ntp_io.h"
+--- 9,19 ----
+  #include <sys/param.h>
+  #include <sys/ioctl.h>
+  #include <sys/time.h>
+  
++ #ifdef MCAST
++ #include "ntp_in.h"
++ #endif /* MCAST */
++ 
+  #include "ntpd.h"
+  #include "ntp_select.h"
+  #include "ntp_io.h"
+***************
+*** 400,406 ****
+--- 403,418 ----
+  		    inter_list[i].flags & INT_BROADCAST);
+  	}
+  
++ #ifdef MCAST
+  	/*
++ 	 * enable possible multicast reception on the broadcast socket
++ 	 */
++ 	inter_list[0].bcast.sin_addr.s_addr = INADDR_ANY;
++ 	inter_list[0].bcast.sin_family = AF_INET;
++ 	inter_list[0].bcast.sin_port = port;
++ #endif /* MCAST */
++ 
++ 	/*
+  	 * Blacklist all bound interface addresses
+  	 */
+  	resmask.sin_addr.s_addr = ~0L;
+***************
+*** 466,474 ****
+  io_multicast_add(addr)
+  	U_LONG addr;
+  {
+! 	int fd = inter_list[0].fd;
+  	struct ip_mreq mreq;
+- 	struct in_addr in_addr;
+  
+  	if (!IN_CLASSD(addr))
+  		return;
+--- 478,485 ----
+  io_multicast_add(addr)
+  	U_LONG addr;
+  {
+! 	int fd = inter_list[0].bfd;
+  	struct ip_mreq mreq;
+  
+  	if (!IN_CLASSD(addr))
+  		return;
+***************
+*** 475,483 ****
+  	/*
+  	 * enable reception of multicast packets
+  	 */
+! 	in_addr.s_addr = htonl(addr);
+! 	mreq.imr_multiaddr = in_addr;
+! 	mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+  	if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
+  	    (char *)&mreq, sizeof(mreq)) == -1)
+  		syslog(LOG_ERR, "setsockopt IP_ADD_MEMBERSHIP fails: %m");
+--- 486,493 ----
+  	/*
+  	 * enable reception of multicast packets
+  	 */
+! 	mreq.imr_multiaddr.s_addr = addr;
+! 	mreq.imr_interface.s_addr = INADDR_ANY;
+  	if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
+  	    (char *)&mreq, sizeof(mreq)) == -1)
+  		syslog(LOG_ERR, "setsockopt IP_ADD_MEMBERSHIP fails: %m");
+***************
+*** 965,971 ****
+  			if (doing == 0) {
+  				fd = inter_list[i].fd;
+  			} else {
+! 				if (!(inter_list[i].flags & INT_BCASTOPEN))
+  					break;
+  				fd = inter_list[i].bfd;
+  			}
+--- 975,982 ----
+  			if (doing == 0) {
+  				fd = inter_list[i].fd;
+  			} else {
+! 				if (!(inter_list[i].flags & INT_BCASTOPEN ||
+! 				      inter_list[i].flags & INT_MULTICAST))
+  					break;
+  				fd = inter_list[i].bfd;
+  			}
+
+
+
+
+*** xntpd/ntp_peer.c	Mon Apr 11 01:23:53 1994
+--- /m/pogo/ajit/xntp3/xntpd/ntp_peer.c	Mon Apr 25 00:45:10 1994
+***************
+*** 223,228 ****
+--- 223,238 ----
+  		"two instances of default interface for %s in hash table",
+  					    ntoa(srcadr));
+  			}
++ #ifdef MCAST
++ 			/* 
++ 			 * multicast hacks to determine peer when a 
++ 			 * pakcet arrives and there exists an assoc.
++ 			 * with src in client/server mode
++ 			 */
++ 			if (dstadr == any_interface && 
++ 			    peer->mc_flags >= 0x1 )
++ 				return peer;
++ #endif /* MCAST */
+  		}
+  	}
+  
+***************
+*** 468,473 ****
+--- 478,494 ----
+  	peer->dispersion = NTP_MAXDISPERSE;
+  	peer->stratum = STRATUM_UNSPEC;
+  	peer->update = sys_clock;
++ 
++ #ifdef MCAST
++ 	if (peer->hmode == MODE_MCLIENT) {
++ 		peer->mc_count = 0;
++ 		peer->mc_flags = 0x1;
++     	}
++ 	else {
++ 		peer->mc_count = 0;
++ 		peer->mc_flags = 0x0;
++ 	}
++ #endif /* MCAST */
+  
+  	for (i = 0; i < NTP_SHIFT; i++) {
+  		peer->filter_order[i] = i;
+
+
+
+
+*** xntpd/ntp_proto.c	Tue Apr 19 03:38:04 1994
+--- /m/pogo/ajit/xntp3/xntpd/ntp_proto.c	Mon Apr 25 18:07:13 1994
+***************
+*** 183,190 ****
+  					peer->timereachable = current_time;
+  				}
+  			} else {
+  				unpeer(peer);
+! 				return;
+  			}
+  
+  			/*
+--- 183,196 ----
+  					peer->timereachable = current_time;
+  				}
+  			} else {
++ 
++ 			    /* temporary hack - need to straighten it out */
++ #ifndef MCAST
+  				unpeer(peer);
+! #endif /* MCAST */
+! 				if (!(peer->hmode == MODE_CLIENT &&
+! 				    peer->pmode == MODE_BROADCAST))
+! 				  	return;
+  			}
+  
+  			/*
+***************
+*** 499,507 ****
+  			break;
+  
+  		case MODE_PASSIVE:
+- #ifdef MCAST
+- 			/* process the packet to determine the rt-delay */
+- #endif /* MCAST */
+  		case MODE_SERVER:
+  			/*
+  			 * These are obvious errors.  Ignore.
+--- 505,510 ----
+***************
+*** 523,529 ****
+  			if ((restrict & RES_NOPEER) || !sys_bclient)
+  				return;
+  */
+! 			mymode = MODE_BCLIENT;
+  			break;
+  		}
+  
+--- 526,532 ----
+  			if ((restrict & RES_NOPEER) || !sys_bclient)
+  				return;
+  */
+! 			mymode = MODE_MCLIENT;
+  			break;
+  		}
+  
+***************
+*** 534,539 ****
+--- 537,543 ----
+  		peer = newpeer(&rbufp->recv_srcadr, rbufp->dstadr, mymode,
+  		    PKT_VERSION(pkt->li_vn_mode), NTP_MINDPOLL,
+  		    NTP_MAXPOLL, 0, hiskeyid);
++ 
+  		if (peer == 0) {
+  			/*
+  			 * The only way this can happen is if the
+***************
+*** 628,634 ****
+  		case MODE_PASSIVE:
+  		case MODE_SERVER:
+  			process_packet(peer, pkt, &(rbufp->recv_time),
+! 			    has_mac, trustable);
+  			break;
+  
+  		case MODE_CLIENT:
+--- 632,650 ----
+  		case MODE_PASSIVE:
+  		case MODE_SERVER:
+  			process_packet(peer, pkt, &(rbufp->recv_time),
+! 				       has_mac, trustable);
+! 
+! #ifdef MCAST
+! 			if (peer->mc_flags == 0x1) {
+! 			    peer->mc_count++;
+! 			    if (peer->mc_count >= 8 ||
+! 				peer->dispersion < 1) {
+! 				peer->hmode = MODE_BCLIENT;
+! 				peer->mc_count = 0;
+! 				peer->mc_flags = 0x2;
+! 			    }
+! 			}
+! #endif /* MCAST */
+  			break;
+  
+  		case MODE_CLIENT:
+***************
+*** 728,733 ****
+--- 744,778 ----
+  			 */
+  			break;
+  		}
++ 		break;
++ 
++ #ifdef MCAST
++ 	case MODE_MCLIENT:
++ 		/*
++ 		 * Multicast client mode. Replaces the Broadcast client
++ 		 * mode for the moment until we find out how to pass
++ 		 * information on whether it is a broadcast packet or
++ 		 * multicast packet.
++ 		 * So, all broadcast and multicast packets come through
++ 		 * this section
++ 		 */
++ 		switch (hismode) {
++ 		case MODE_BROADCAST:
++ 		    	if (peer->mc_flags == 0x1) {
++ 			    peer->hmode = MODE_CLIENT;
++ 			    break;
++ 			}
++ 			if (peer->mc_flags == 0x2) {
++ 			    process_packet(peer, pkt, &rbufp->recv_time,
++ 					   has_mac, trustable);
++ 			}
++ 		case MODE_SERVER:
++ 		case MODE_PASSIVE:
++ 		case MODE_ACTIVE:
++ 		case MODE_CLIENT:
++ 			break;
++ 		}
++ #endif /* MCAST */
+  	}
+  }
+  
+***************
+*** 900,907 ****
+--- 945,959 ----
+  	 * the simplified ei calculation.
+  	 */
+  	if (PKT_MODE(pkt->li_vn_mode) == MODE_BROADCAST) {
++ 
++ #ifdef MCAST
++ 		M_ADDUF(ci.l_ui, ci.l_uf, peer->delay >> 1);
++ 		di = peer->delay;
++ #else
+  		M_ADDUF(ci.l_ui, ci.l_uf, peer->estbdelay >> 1);
+  		di = MFPTOFP(0, peer->estbdelay);
++ #endif /* MCAST */
++ 
+  		ei += peer->rec.l_ui - p_org.l_ui;
+  	} else {
+  		M_ADD(ci.l_ui, ci.l_uf, t23_ui, t23_uf);
+***************
+*** 2052,2061 ****
+  		/*
+  		 * Add multicast group address
+  		 */
+! 		if (!sys_bclient) {
+  			sys_bclient = 1;
+  			io_setbclient();
+! 		}
+  #ifdef MCAST
+  		io_multicast_add(value);
+  #endif /* MCAST */
+--- 2104,2113 ----
+  		/*
+  		 * Add multicast group address
+  		 */
+! /*		if (!sys_bclient) {
+  			sys_bclient = 1;
+  			io_setbclient();
+! 		}*/
+  #ifdef MCAST
+  		io_multicast_add(value);
+  #endif /* MCAST */
+

@@ -1,0 +1,58 @@
+
+Received: from louie.udel.edu by huey.udel.edu id aa06446; 20 Apr 94 15:28 EDT
+Received: from swan.cl.cam.ac.uk by louie.udel.edu id aa22083;
+          20 Apr 94 15:13 EDT
+Received: from labes.cl.cam.ac.uk (user pb (rfc931)) by swan.cl.cam.ac.uk 
+          with SMTP (PP-6.5) to cl; Wed, 20 Apr 1994 20:12:58 +0100
+To: Mills@udel.edu
+cc: Piete Brooks <Piete.Brooks@cl.cam.ac.uk>
+Subject: REPEAT patches which appear not to be in "s" ... :-( xntpd/ntp_io.c
+In-reply-to: Your message of Wed, 20 Apr 1994 09:48:16 -0400. <9404200948.aa04338@huey.udel.edu>
+Date: Wed, 20 Apr 1994 20:12:52 +0100
+From: Piete Brooks <Piete.Brooks@cl.cam.ac.uk>
+Message-ID: <"swan.cl.cam.:019560:940420191303"@cl.cam.ac.uk>
+
+This is needed for DEC machines, etc -- htonl the addresses !
+
+*** xntpd/ntp_io.c	Wed Apr 20 04:04:35 1994
+--- ../../xntp3.3r/src/xntpd/ntp_io.c	Wed Apr 20 12:43:40 1994
+***************
+*** 474,479 ****
+--- 474,480 ----
+  {
+  	int fd = inter_list[0].fd;
+  	struct ip_mreq mreq;
++ 	struct in_addr in_addr;
+  
+  	if (!IN_CLASSD(addr))
+  		return;
+***************
+*** 480,490 ****
+  	/*
+  	 * enable reception of multicast packets
+  	 */
+! 	mreq.imr_multiaddr.s_addr = addr;
+! 	mreq.imr_interface.s_addr = INADDR_ANY;
+  	if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
+  	    (char *)&mreq, sizeof(mreq)) == -1)
+! 		syslog(LOG_ERR, "setsockopt IP_ADD_MEMBERSHIP fails: %m");
+  }
+  #endif /* MCAST */
+  
+--- 481,495 ----
+  	/*
+  	 * enable reception of multicast packets
+  	 */
+! 	in_addr.s_addr = htonl(addr);
+! 	mreq.imr_multiaddr = in_addr;
+! 	mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+  	if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
+  	    (char *)&mreq, sizeof(mreq)) == -1)
+! 		syslog(LOG_ERR,
+! 		"setsockopt IP_ADD_MEMBERSHIP fails: %m for %x / %x (%s)",
+! 			mreq.imr_multiaddr, mreq.imr_interface.s_addr,
+! 			inet_ntoa(in_addr));
+  }
+  #endif /* MCAST */
+  
+

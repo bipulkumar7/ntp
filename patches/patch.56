@@ -1,0 +1,116 @@
+
+Received: from louie.udel.edu by huey.udel.edu id aa21455; 5 May 94 17:31 EDT
+Received: from swan.cl.cam.ac.uk by louie.udel.edu id aa06551;
+          5 May 94 17:28 EDT
+Received: from labes.cl.cam.ac.uk (user pb (rfc931)) by swan.cl.cam.ac.uk 
+          with SMTP (PP-6.5) to cl; Thu, 5 May 1994 22:28:06 +0100
+To: Ajit Thyagarajan <ajit@udel.edu>
+cc: Mills@udel.edu, Piete Brooks <Piete.Brooks@cl.cam.ac.uk>
+Subject: Few more patches and questions ...
+In-reply-to: Your message of Thu, 05 May 1994 20:52:37 +0100. <"swan.cl.cam.:033190:940505195246"@cl.cam.ac.uk>
+Date: Thu, 05 May 1994 22:27:56 +0100
+From: Piete Brooks <Piete.Brooks@cl.cam.ac.uk>
+Message-ID: <"swan.cl.cam.:064680:940505212815"@cl.cam.ac.uk>
+
+Few tweaks to aid when multicast stuff aint there ....
+
+See also all instances of "MCLIENT" -- I added some debug statements, as I
+wasn't sure what ]to do if this new internal mode was set.
+
+
+*** ntp_proto.c-dist	Thu May  5 07:58:14 1994
+--- ntp_proto.c	Thu May  5 21:08:27 1994
+***************
+*** 745,750 ****
+--- 745,752 ----
+  		 * mode for the moment until we find out how to pass
+  		 * information on whether it is a broadcast packet or
+  		 * multicast packet.
++ 		 * ?? Is this still the case ? Under *MOST* O/Ses we can
++ 		 * ?? tell, as one can bind to a class D address
+  		 * So, all broadcast and multicast packets come through
+  		 * this section
+  		 */
+*** ntp_io.c-dist	Thu May  5 07:38:03 1994
+--- ntp_io.c	Thu May  5 21:24:09 1994
+***************
+*** 403,408 ****
+--- 403,410 ----
+  #if defined(MCAST) && !defined(sun) && !defined(SYS_BSDI) && !defined(SYS_DECOSF1)
+  	/*
+  	 * enable possible multicast reception on the broadcast socket
++ 	 *
++ 	 * ?? How does this code achieve that objective ??   pb
+  	 */
+  	inter_list[0].bcast.sin_addr.s_addr = htonl(INADDR_ANY);
+  	inter_list[0].bcast.sin_family = AF_INET;
+***************
+*** 482,491 ****
+  	int s;
+  	struct sockaddr_in *sinp;
+  
+  	if (!IN_CLASSD(haddr))
+  		return;
+  
+- 	iaddr.s_addr = addr;
+  	for (i=0; i<ninterfaces; i++) {
+  		/* Already have this address */
+  		if (inter_list[i].sin.sin_addr.s_addr == addr) return;
+--- 484,501 ----
+  	int s;
+  	struct sockaddr_in *sinp;
+  
++ 	iaddr.s_addr = addr;
++ 
+  	if (!IN_CLASSD(haddr))
++ 	{	syslog(LOG_ERR,
++ 			"cannot add multicast address %s as it is not class D",
++ 			inet_ntoa(iaddr));
++ 		if (debug) printf(
++ 		      "cannot add multicast address %s as it is not class D\n",
++ 			inet_ntoa(iaddr));
+  		return;
++ 	}
+  
+  	for (i=0; i<ninterfaces; i++) {
+  		/* Already have this address */
+  		if (inter_list[i].sin.sin_addr.s_addr == addr) return;
+***************
+*** 511,516 ****
+--- 521,528 ----
+  		i = 0;
+  		/* HACK ! -- stuff in an address */
+  		inter_list[i].bcast.sin_addr.s_addr = addr;
++ 		syslog(LOG_ERR, "...multicast address %s using wildcard socket",
++ 			inet_ntoa(iaddr));
+  	}
+  	else {
+  		inter_list[i].fd = s;
+***************
+*** 533,538 ****
+--- 545,557 ----
+  			inet_ntoa(iaddr));
+  	inter_list[i].flags |= INT_MULTICAST;
+  	if (i >= ninterfaces) ninterfaces = i+1;	
++ #else /* MCAST */
++ 	struct in_addr iaddr;
++ 	iaddr.s_addr = addr;
++ 	syslog(LOG_ERR, "cannot add multicast address %s as no MCAST support",
++ 			inet_ntoa(iaddr));
++ 	if (debug) printf("cannot add multicast address %s as no MCAST support\n",
++ 			inet_ntoa(iaddr));
+  #endif /* MCAST */
+  }
+  
+***************
+*** 590,595 ****
+--- 609,616 ----
+  				(char *)&mreq, sizeof(mreq)) == -1)
+  				syslog(LOG_ERR, "setsockopt IP_DROP_MEMBERSHIP fails: %m");
+  
++ 			/* This is **WRONG** -- there may be others ! */
++ 			/* There should be a count of users ... */
+  			inter_list[i].flags &= ~INT_MULTICAST;
+  		}
+          }
+

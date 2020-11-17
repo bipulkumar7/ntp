@@ -1,0 +1,42 @@
+
+Received: from snow-white.ee.udel.edu by huey.udel.edu id aa04615;
+          27 Apr 94 16:05 EDT
+Received: from louie.udel.edu by snow-white.ee.udel.edu id aa09689;
+          27 Apr 94 15:59 EDT
+Received: from snow-white.ee.udel.edu by stimpy.eecis.udel.edu id aa13619;
+          27 Apr 94 19:55 GMT
+To: mills@eecis.udel.edu
+cc: ajit@albert.udel.edu
+Subject: fresh diffs for ntp_proto.c
+Date: Wed, 27 Apr 1994 15:55:51 -0400
+From: Ajit Thyagarajan <ajit@udel.edu>
+Message-ID:  <9404271955.aa13619@stimpy.eecis.udel.edu>
+
+
+*** xntpd/ntp_proto.c	Tue Apr 26 00:25:06 1994
+--- /m/pogo/ajit/xntp3/xntpd/ntp_proto.c	Wed Apr 27 19:46:10 1994
+***************
+*** 563,570 ****
+--- 563,572 ----
+  	 */
+  	if (!(peer->flags & FLAG_CONFIG)) {
+  		if (has_mac) {
++ 		    if (!(peer->reach && peer->keyid != hiskeyid)) {
+  			peer->keyid = hiskeyid;
+  			peer->flags |= FLAG_AUTHENABLE;
++ 		    } 
+  		} else {
+  			peer->keyid = 0;
+  			peer->flags &= ~FLAG_AUTHENABLE;
+***************
+*** 759,764 ****
+--- 761,768 ----
+  		switch (hismode) {
+  		case MODE_BROADCAST:
+  		    	if (peer->mc_flags == 0x1) {
++ 			    process_packet(peer, pkt, &rbufp->recv_time,
++ 					   has_mac, trustable);
+  			    peer->hmode = MODE_CLIENT;
+  			    break;
+  			}
+

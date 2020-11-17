@@ -1,0 +1,1030 @@
+*** xntpd/ntp_io.c.DIST	Fri May 13 23:59:52 1994
+--- xntpd/ntp_io.c	Sun May 15 09:00:37 1994
+***************
+*** 58,64 ****
+  #define BLOCKIO()   ((void) block_sigio())
+  #define UNBLOCKIO() ((void) unblock_sigio())
+  #else
+! #define BLOCKIO()   
+  #define UNBLOCKIO()
+  #endif
+  
+--- 58,64 ----
+  #define BLOCKIO()   ((void) block_sigio())
+  #define UNBLOCKIO() ((void) unblock_sigio())
+  #else
+! #define BLOCKIO()
+  #define UNBLOCKIO()
+  #endif
+  
+***************
+*** 134,140 ****
+  static	int	open_socket	P((struct sockaddr_in *, int));
+  static	void	close_socket	P((int));
+  #ifdef HAVE_SIGNALED_IO
+! static  int 	init_clock_sig	P(());
+  static  void	init_socket_sig P((int));
+  static  void	set_signal	P(());
+  static  RETSIGTYPE sigio_handler P((int));
+--- 134,140 ----
+  static	int	open_socket	P((struct sockaddr_in *, int));
+  static	void	close_socket	P((int));
+  #ifdef HAVE_SIGNALED_IO
+! static  int	init_clock_sig	P(());
+  static  void	init_socket_sig P((int));
+  static  void	set_signal	P(());
+  static  RETSIGTYPE sigio_handler P((int));
+***************
+*** 240,246 ****
+  
+  	i = 1;
+  
+!   	ifc.ifc_len = sizeof(buf);
+  #ifdef STREAMS_TLI
+  	ioc.ic_cmd = SIOCGIFCONF;
+  	ioc.ic_timout = 0;
+--- 240,246 ----
+  
+  	i = 1;
+  
+! 	ifc.ifc_len = sizeof(buf);
+  #ifdef STREAMS_TLI
+  	ioc.ic_cmd = SIOCGIFCONF;
+  	ioc.ic_timout = 0;
+***************
+*** 376,388 ****
+  		}
+  		inter_list[i].mask = *(struct sockaddr_in *)&ifreq.ifr_addr;
+  
+! 		/* 
+  		 * look for an already existing source interface address.  If
+! 		 * the machine has multiple point to point interfaces, then 
+  		 * the local address may appear more than once.
+! 		 */		   
+  		for (j=0; j < i; j++)
+! 			if (inter_list[j].sin.sin_addr.s_addr == 
+  			    inter_list[i].sin.sin_addr.s_addr) {
+  				break;
+  			}
+--- 376,388 ----
+  		}
+  		inter_list[i].mask = *(struct sockaddr_in *)&ifreq.ifr_addr;
+  
+! 		/*
+  		 * look for an already existing source interface address.  If
+! 		 * the machine has multiple point to point interfaces, then
+  		 * the local address may appear more than once.
+! 		 */
+  		for (j=0; j < i; j++)
+! 			if (inter_list[j].sin.sin_addr.s_addr ==
+  			    inter_list[i].sin.sin_addr.s_addr) {
+  				break;
+  			}
+***************
+*** 422,428 ****
+  	if (debug > 2) {
+  		printf("create_sockets: ninterfaces=%d\n", ninterfaces);
+  		for (i = 0; i < ninterfaces; i++) {
+! 			printf("interface %d:  fd=%d,  bfd=%d,  name=%.8s,  flags=0x%x\n", 
+  				i,
+  				inter_list[i].fd,
+  				inter_list[i].bfd,
+--- 422,428 ----
+  	if (debug > 2) {
+  		printf("create_sockets: ninterfaces=%d\n", ninterfaces);
+  		for (i = 0; i < ninterfaces; i++) {
+! 			printf("interface %d:  fd=%d,  bfd=%d,  name=%.8s,  flags=0x%x\n",
+  				i,
+  				inter_list[i].fd,
+  				inter_list[i].bfd,
+***************
+*** 474,538 ****
+  io_multicast_add(addr)
+  	U_LONG addr;
+  {
+!   #ifdef MCAST
+!   	struct ip_mreq mreq;
+!  	int i = ninterfaces;	/* Use the next interface */
+!  	U_LONG haddr = ntohl(addr);
+!  	struct in_addr iaddr;
+!  	int s;
+!  	struct sockaddr_in *sinp;
+!  
+!  	if (!IN_CLASSD(haddr))
+!  		return;
+!  
+!  	iaddr.s_addr = addr;
+!  	for (i=0; i<ninterfaces; i++) {
+!  		/* Already have this address */
+!  		if (inter_list[i].sin.sin_addr.s_addr == addr) return;
+!  		/* found a free slot */
+!  		if (inter_list[i].sin.sin_addr.s_addr == 0 &&
+!  			inter_list[i].fd <= 0 &&
+!  			inter_list[i].bfd <= 0 &&
+!  			inter_list[i].flags == 0) break;
+!  	}
+!  	sinp = &(inter_list[i].sin);
+!  
+!  	memset((char *)&mreq, 0, sizeof(mreq));
+!  	memset((char *)&inter_list[i], 0, sizeof inter_list[0]);
+!  	sinp->sin_family = AF_INET;
+!  	sinp->sin_addr = iaddr;
+!  	sinp->sin_port = htons(123);
+!  
+!  	s = open_socket(sinp, 0);
+!  	/* Try opening a socket for the specified class D address */
+!  	/* This works under SunOS 4.x, but not OSF1 .. :-( */
+!  	if (s < 0) {
+!  		memset((char *)&inter_list[i], 0, sizeof inter_list[0]);
+!  		i = 0;
+!  		/* HACK ! -- stuff in an address */
+!  		inter_list[i].bcast.sin_addr.s_addr = addr;
+!  	}
+!  	else {
+!  		inter_list[i].fd = s;
+!  		inter_list[i].bfd = -1;
+!  		(void) strncpy(inter_list[i].name, "multicast",
+!  	     	sizeof(inter_list[i].name));
+!  		inter_list[i].mask.sin_addr.s_addr = htonl(~0);
+!  	}
+  
+!  	/*
+!  	 * Enable reception of multicast packets
+!  	 */
+!  	mreq.imr_multiaddr = iaddr;
+!  	mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+!  	if (setsockopt(inter_list[i].fd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
+!  	    (char *)&mreq, sizeof(mreq)) == -1)
+!  		syslog(LOG_ERR,
+!  		"setsockopt IP_ADD_MEMBERSHIP fails: %m for %x / %x (%s)",
+!  			mreq.imr_multiaddr, mreq.imr_interface.s_addr,
+!  			inet_ntoa(iaddr));
+!  	inter_list[i].flags |= INT_MULTICAST;
+!  	if (i >= ninterfaces) ninterfaces = i+1;	
+  #endif /* MCAST */
+  }
+  
+--- 474,555 ----
+  io_multicast_add(addr)
+  	U_LONG addr;
+  {
+! #ifdef MCAST
+! 	struct ip_mreq mreq;
+! 	int i = ninterfaces;	/* Use the next interface */
+! 	U_LONG haddr = ntohl(addr);
+! 	struct in_addr iaddr;
+! 	int s;
+! 	struct sockaddr_in *sinp;
+  
+! 	iaddr.s_addr = addr;
+! 
+! 	if (!IN_CLASSD(haddr))
+! 	{	syslog(LOG_ERR,
+! 			"cannot add multicast address %s as it is not class D",
+! 			inet_ntoa(iaddr));
+! 		if (debug) printf(
+! 		      "cannot add multicast address %s as it is not class D\n",
+! 			inet_ntoa(iaddr));
+! 		return;
+! 	}
+! 
+! 	for (i=0; i<ninterfaces; i++) {
+! 		/* Already have this address */
+! 		if (inter_list[i].sin.sin_addr.s_addr == addr) return;
+! 		/* found a free slot */
+! 		if (inter_list[i].sin.sin_addr.s_addr == 0 &&
+! 			inter_list[i].fd <= 0 &&
+! 			inter_list[i].bfd <= 0 &&
+! 			inter_list[i].flags == 0) break;
+! 	}
+! 	sinp = &(inter_list[i].sin);
+! 
+! 	memset((char *)&mreq, 0, sizeof(mreq));
+! 	memset((char *)&inter_list[i], 0, sizeof inter_list[0]);
+! 	sinp->sin_family = AF_INET;
+! 	sinp->sin_addr = iaddr;
+! 	sinp->sin_port = htons(123);
+! 
+! 	s = open_socket(sinp, 0);
+! 	/* Try opening a socket for the specified class D address */
+! 	/* This works under SunOS 4.x, but not OSF1 .. :-( */
+! 	if (s < 0) {
+! 		memset((char *)&inter_list[i], 0, sizeof inter_list[0]);
+! 		i = 0;
+! 		/* HACK ! -- stuff in an address */
+! 		inter_list[i].bcast.sin_addr.s_addr = addr;
+! 		syslog(LOG_ERR, "...multicast address %s using wildcard socket",
+! 			inet_ntoa(iaddr));
+! 	}
+! 	else {
+! 		inter_list[i].fd = s;
+! 		inter_list[i].bfd = -1;
+! 		(void) strncpy(inter_list[i].name, "multicast",
+! 		sizeof(inter_list[i].name));
+! 		inter_list[i].mask.sin_addr.s_addr = htonl(~0);
+! 	}
+! 	printf("using interface %d for multicast %08x on %d\n", i, haddr & 0xffffffff, inter_list[i].fd);
+! 	/*
+! 	 * enable reception of multicast packets
+! 	 */
+! 	mreq.imr_multiaddr = iaddr;
+! 	mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+! 	if (setsockopt(inter_list[i].fd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
+! 	    (char *)&mreq, sizeof(mreq)) == -1)
+! 		syslog(LOG_ERR,
+! 		"setsockopt IP_ADD_MEMBERSHIP fails: %m for %x / %x (%s)",
+! 			mreq.imr_multiaddr, mreq.imr_interface.s_addr,
+! 			inet_ntoa(iaddr));
+! 	inter_list[i].flags |= INT_MULTICAST;
+! 	if (i >= ninterfaces) ninterfaces = i+1;	
+! #else /* MCAST */
+! 	struct in_addr iaddr;
+! 	iaddr.s_addr = addr;
+! 	syslog(LOG_ERR, "cannot add multicast address %s as no MCAST support",
+! 			inet_ntoa(iaddr));
+! 	if (debug) printf("cannot add multicast address %s as no MCAST support\n",
+! 			inet_ntoa(iaddr));
+  #endif /* MCAST */
+  }
+  
+***************
+*** 576,604 ****
+  	 * Disable reception of multicast packets
+  	 */
+  	mreq.imr_multiaddr.s_addr = addr;
+!  	mreq.imr_interface.s_addr = INADDR_ANY;
+!  	for (i = 0; i < ninterfaces; i++) {
+!  		if (!(inter_list[i].flags & INT_MULTICAST))
+!  			continue;
+!  		if (!(inter_list[i].fd < 0))
+!  			continue;
+!  		if (addr != inter_list[i].sin.sin_addr.s_addr)
+!  			continue;
+!  		if (i != 0) {
+!  			/* we have an explicit fd, so we can slose it */
+!  			close_socket(inter_list[i].fd);
+!  			memset((char *)&inter_list[i], 0, sizeof inter_list[0]);
+!  			inter_list[i].fd = -1;
+!  			inter_list[i].bfd = -1;
+!  		} else {
+!  			/* We are sharing "any address" port :-(  Don't close it! */
+!  			if (setsockopt(inter_list[i].fd, IPPROTO_IP, IP_DROP_MEMBERSHIP,
+!  				(char *)&mreq, sizeof(mreq)) == -1)
+!  				syslog(LOG_ERR, "setsockopt IP_DROP_MEMBERSHIP fails: %m");
+!  
+!  			inter_list[i].flags &= ~INT_MULTICAST;
+!  		}
+! 	}
+  #else /* MCAST */
+  	syslog(LOG_ERR, "this function requires multicast kernel");
+  #endif /* MCAST */
+--- 593,622 ----
+  	 * Disable reception of multicast packets
+  	 */
+  	mreq.imr_multiaddr.s_addr = addr;
+! 	mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+! 	for (i = 0; i < ninterfaces; i++) {
+! 		if (!(inter_list[i].flags & INT_MULTICAST))
+! 			continue;
+! 		if (!(inter_list[i].fd < 0))
+! 			continue;
+! 		if (addr != inter_list[i].sin.sin_addr.s_addr)
+! 			continue;
+! 		if (i != 0) {
+! 			/* we have an explicit fd, so we can slose it */
+! 			close_socket(inter_list[i].fd);
+! 			memset((char *)&inter_list[i], 0, sizeof inter_list[0]);
+! 			inter_list[i].fd = -1;
+! 			inter_list[i].bfd = -1;
+! 		} else {
+! 			/* We are sharing "any address" port :-(  Don't close it! */
+! 			if (setsockopt(inter_list[i].fd, IPPROTO_IP, IP_DROP_MEMBERSHIP,
+! 				(char *)&mreq, sizeof(mreq)) == -1)
+! 				syslog(LOG_ERR, "setsockopt IP_DROP_MEMBERSHIP fails: %m");
+! 			/* This is **WRONG** -- there may be others ! */
+! 			/* There should be a count of users ... */
+! 			inter_list[i].flags &= ~INT_MULTICAST;
+! 		}
+!         }
+  #else /* MCAST */
+  	syslog(LOG_ERR, "this function requires multicast kernel");
+  #endif /* MCAST */
+***************
+*** 636,642 ****
+  	if (bind(fd, (struct sockaddr *)addr, sizeof(*addr)) < 0) {
+  		char buff[160];
+  		sprintf(buff,
+! 		    "bind() fd %d, family %d, port %d, addr %08x, in_classd=%d flags=%d fails: %%m", 
+  			fd,
+  			addr->sin_family,
+  			ntohs(addr->sin_port),
+--- 654,660 ----
+  	if (bind(fd, (struct sockaddr *)addr, sizeof(*addr)) < 0) {
+  		char buff[160];
+  		sprintf(buff,
+! 		    "bind() fd %d, family %d, port %d, addr %08x, in_classd=%d flags=%d fails: %%m",
+  			fd,
+  			addr->sin_family,
+  			ntohs(addr->sin_port),
+***************
+*** 655,661 ****
+  	}
+  #ifdef DEBUG
+  	if (debug)
+! 		printf("bind() fd %d, family %d, port %d, addr %08x, flags=%d\n", 
+  			fd,
+  			addr->sin_family,
+  			ntohs(addr->sin_port),
+--- 673,679 ----
+  	}
+  #ifdef DEBUG
+  	if (debug)
+! 		printf("bind() fd %d, family %d, port %d, addr %08x, flags=%d\n",
+  			fd,
+  			addr->sin_family,
+  			ntohs(addr->sin_port),
+***************
+*** 903,909 ****
+  	    unsigned char mttl = ttl;
+  
+  	    /* set the multicast ttl for outgoing packets */
+! 	    if (setsockopt(inter->fd, IPPROTO_IP, IP_MULTICAST_TTL, 
+  			   &mttl, sizeof(mttl)) == -1) {
+  		syslog(LOG_ERR, "setsockopt IP_MULTICAST_TTL fails: %m");
+  	    }
+--- 921,927 ----
+  	    unsigned char mttl = ttl;
+  
+  	    /* set the multicast ttl for outgoing packets */
+! 	    if (setsockopt(inter->fd, IPPROTO_IP, IP_MULTICAST_TTL,
+  			   &mttl, sizeof(mttl)) == -1) {
+  		syslog(LOG_ERR, "setsockopt IP_MULTICAST_TTL fails: %m");
+  	    }
+***************
+*** 1074,1080 ****
+  				 * on the wild card socket, just dump the
+  				 * packet.
+  				 */
+! 				if (!(free_recvbufs && i == 0 && 
+  				    inter_list[i].flags & INT_MULTICAST)) {
+  #ifdef UDP_WILDCARD_DELIVERY
+  				/*
+--- 1092,1098 ----
+  				 * on the wild card socket, just dump the
+  				 * packet.
+  				 */
+! 				if (!(free_recvbufs && i == 0 &&
+  				    inter_list[i].flags & INT_MULTICAST)) {
+  #ifdef UDP_WILDCARD_DELIVERY
+  				/*
+***************
+*** 1086,1101 ****
+  					if (i == 0 || free_recvbufs == 0) {
+  #endif
+  						char buf[RX_BUFF_SIZE];
+- 
+- #ifdef NO_UDP_WILDCARD_DELIVERY
+- 						(void) read(fd, buf,								    sizeof buf);
+- #else
+  						struct sockaddr from;
+  						fromlen = sizeof from;
+  						(void) recvfrom(fd, buf,
+  						    sizeof(buf), 0,
+  						    &from, &fromlen);
+! #endif
+  						if (i == 0)
+  							packets_ignored++;
+  						else
+--- 1104,1119 ----
+  					if (i == 0 || free_recvbufs == 0) {
+  #endif
+  						char buf[RX_BUFF_SIZE];
+  						struct sockaddr from;
+  						fromlen = sizeof from;
+  						(void) recvfrom(fd, buf,
+  						    sizeof(buf), 0,
+  						    &from, &fromlen);
+! 						printf(
+! 				"ignore/drop on %d(%ld) fd=%d from %s\n",
+! 							i, free_recvbufs, fd,
+! 			inet_ntoa(((struct sockaddr_in *) &from)->sin_addr));
+! 
+  						if (i == 0)
+  							packets_ignored++;
+  						else
+***************
+*** 1128,1136 ****
+  #ifdef DEBUG
+  	  if (debug)
+  		  printf("input_handler: fd=%d length %d from %08lx %s\n",
+! 		 	 fd, rb->recv_length,
+! 		  	ntohl(rb->recv_srcadr.sin_addr.s_addr) & 0xffffffff,
+! 		  	inet_ntoa(rb->recv_srcadr.sin_addr));
+  #endif
+  
+  				/*
+--- 1146,1154 ----
+  #ifdef DEBUG
+  	  if (debug)
+  		  printf("input_handler: fd=%d length %d from %08lx %s\n",
+! 			 fd, rb->recv_length,
+! 			ntohl(rb->recv_srcadr.sin_addr.s_addr) & 0xffffffff,
+! 			inet_ntoa(rb->recv_srcadr.sin_addr));
+  #endif
+  
+  				/*
+***************
+*** 1207,1213 ****
+  
+  
+  #ifdef REFCLOCK
+! /* 
+   * This is a hack so that I don't have to fool with these ioctls in the
+   * pps driver ... we are already non-blocking and turn on SIGIO thru
+   * another mechanisim
+--- 1225,1231 ----
+  
+  
+  #ifdef REFCLOCK
+! /*
+   * This is a hack so that I don't have to fool with these ioctls in the
+   * pps driver ... we are already non-blocking and turn on SIGIO thru
+   * another mechanisim
+***************
+*** 1343,1349 ****
+   * Spical cases first!
+   */
+  #if defined(SYS_HPUX)
+! #define CLOCK_DONE 
+  static int
+  init_clock_sig(rio)
+  	struct refclockio *rio;
+--- 1361,1367 ----
+   * Spical cases first!
+   */
+  #if defined(SYS_HPUX)
+! #define CLOCK_DONE
+  static int
+  init_clock_sig(rio)
+  	struct refclockio *rio;
+***************
+*** 1373,1384 ****
+          }
+  	return 0;	
+  }
+! #endif /* SYS_HPUX */ 
+  #if defined(SYS_AIX)&&!defined(_BSD)
+  /*
+   * SYSV compatibility mode under AIX.
+   */
+! #define CLOCK_DONE 
+  static int
+  init_clock_sig(rio)
+  	struct refclockio *rio;
+--- 1391,1402 ----
+          }
+  	return 0;	
+  }
+! #endif /* SYS_HPUX */
+  #if defined(SYS_AIX)&&!defined(_BSD)
+  /*
+   * SYSV compatibility mode under AIX.
+   */
+! #define CLOCK_DONE
+  static int
+  init_clock_sig(rio)
+  	struct refclockio *rio;
+***************
+*** 1402,1408 ****
+  	return 0;
+  }
+  #endif /* AIX && !BSD */
+! #ifndef  CLOCK_DONE 
+  static int
+  init_clock_sig(rio)
+  	struct refclockio *rio;
+--- 1420,1426 ----
+  	return 0;
+  }
+  #endif /* AIX && !BSD */
+! #ifndef  CLOCK_DONE
+  static int
+  init_clock_sig(rio)
+  	struct refclockio *rio;
+***************
+*** 1428,1434 ****
+  	if (ioctl(rio->fd, I_SETSIG, S_INPUT) < 0) {
+                  syslog(LOG_ERR,
+                      "ioctl(I_SETSIG, S_INPUT) fails for clock I/O: %m");
+!         	return 1;
+  	}
+          return 0;
+  }
+--- 1446,1452 ----
+  	if (ioctl(rio->fd, I_SETSIG, S_INPUT) < 0) {
+                  syslog(LOG_ERR,
+                      "ioctl(I_SETSIG, S_INPUT) fails for clock I/O: %m");
+! 		return 1;
+  	}
+          return 0;
+  }
+***************
+*** 1442,1448 ****
+   * Special cases first!
+   */
+  #if defined(SYS_HPUX) || defined(SYS_LINUX)
+! #define SOCKET_DONE 
+  static void
+  init_socket_sig(fd)
+  	int fd;
+--- 1460,1466 ----
+   * Special cases first!
+   */
+  #if defined(SYS_HPUX) || defined(SYS_LINUX)
+! #define SOCKET_DONE
+  static void
+  init_socket_sig(fd)
+  	int fd;
+***************
+*** 1480,1486 ****
+  /*
+   * SYSV compatibility mod under AIX
+   */
+! #define SOCKET_DONE 
+  static void
+  init_socket_sig(fd)
+  	int fd;
+--- 1498,1504 ----
+  /*
+   * SYSV compatibility mod under AIX
+   */
+! #define SOCKET_DONE
+  static void
+  init_socket_sig(fd)
+  	int fd;
+***************
+*** 1508,1516 ****
+  #endif /* AIX && !BSD */
+  #if defined(UDP_BACKWARDS_SETOWN)
+  /*
+!  * SunOS 3.5 and Ultirx 2.0 
+   */
+! #define SOCKET_DONE 
+  static void
+  init_socket_sig(fd)
+  	int fd;
+--- 1526,1534 ----
+  #endif /* AIX && !BSD */
+  #if defined(UDP_BACKWARDS_SETOWN)
+  /*
+!  * SunOS 3.5 and Ultirx 2.0
+   */
+! #define SOCKET_DONE
+  static void
+  init_socket_sig(fd)
+  	int fd;
+***************
+*** 1735,1742 ****
+  {
+  	int mask;
+  
+!     	mask = sigmask(SIGIO)|sigmask(SIGALRM);
+!     	(void)sigblock(mask);
+  }
+  
+  void
+--- 1753,1760 ----
+  {
+  	int mask;
+  
+! 	mask = sigmask(SIGIO)|sigmask(SIGALRM);
+! 	(void)sigblock(mask);
+  }
+  
+  void
+***************
+*** 1759,1765 ****
+  {
+  	int mask, omask;
+  
+!     	mask = sigmask(SIGIO)|sigmask(SIGALRM);
+  	omask = sigblock(0);
+  	omask &= ~mask;
+  	(void)sigsetmask(omask);
+--- 1777,1783 ----
+  {
+  	int mask, omask;
+  
+! 	mask = sigmask(SIGIO)|sigmask(SIGALRM);
+  	omask = sigblock(0);
+  	omask &= ~mask;
+  	(void)sigsetmask(omask);
+***************
+*** 1768,1776 ****
+  void
+  unblock_sigio()
+  {
+!    	int mask, omask;
+!     
+!     	mask = sigmask(SIGIO);
+  	omask = sigblock(0);
+  	omask &= ~mask;
+  	(void)sigsetmask(omask);
+--- 1786,1794 ----
+  void
+  unblock_sigio()
+  {
+! 	int mask, omask;
+! 
+! 	mask = sigmask(SIGIO);
+  	omask = sigblock(0);
+  	omask &= ~mask;
+  	(void)sigsetmask(omask);
+***************
+*** 1781,1787 ****
+  {
+  	int mask, omask;
+  	
+!     	mask = sigmask(SIGIO)|sigmask(SIGALRM);
+          omask = sigblock(0);
+          omask &= ~mask;
+  	sigpause(omask);
+--- 1799,1805 ----
+  {
+  	int mask, omask;
+  	
+! 	mask = sigmask(SIGIO)|sigmask(SIGALRM);
+          omask = sigblock(0);
+          omask &= ~mask;
+  	sigpause(omask);
+*** xntpd/ntp_control.c.DIST	Fri May 13 19:13:09 1994
+--- xntpd/ntp_control.c	Sun May 15 12:28:55 1994
+***************
+*** 484,493 ****
+  		    = htonl(res_keyid);
+  		maclen = 
+  		    authencrypt(res_keyid, (U_LONG *)&rpkt, CTL_HEADER_LEN);
+! 		sendpkt(rmt_addr, lcl_inter, -1, (struct pkt *)&rpkt,
+  		    CTL_HEADER_LEN + maclen);
+  	} else {
+! 		sendpkt(rmt_addr, lcl_inter, -1, (struct pkt *)&rpkt,
+  		    CTL_HEADER_LEN);
+  	}
+  	numctlerrors++;
+--- 484,493 ----
+  		    = htonl(res_keyid);
+  		maclen = 
+  		    authencrypt(res_keyid, (U_LONG *)&rpkt, CTL_HEADER_LEN);
+! 		sendpkt(rmt_addr, lcl_inter, -2, (struct pkt *)&rpkt,
+  		    CTL_HEADER_LEN + maclen);
+  	} else {
+! 		sendpkt(rmt_addr, lcl_inter, -3, (struct pkt *)&rpkt,
+  		    CTL_HEADER_LEN);
+  	}
+  	numctlerrors++;
+***************
+*** 788,794 ****
+  				rpkt.sequence = htons(ctl_trap[i].tr_sequence);
+  				sendpkt(&ctl_trap[i].tr_addr,
+  				    ctl_trap[i].tr_localaddr,
+! 				    -1,
+  				    (struct pkt *)&rpkt, sendlen);
+  				if (!more)
+  					ctl_trap[i].tr_sequence++;
+--- 788,794 ----
+  				rpkt.sequence = htons(ctl_trap[i].tr_sequence);
+  				sendpkt(&ctl_trap[i].tr_addr,
+  				    ctl_trap[i].tr_localaddr,
+! 				    -4,
+  				    (struct pkt *)&rpkt, sendlen);
+  				if (!more)
+  					ctl_trap[i].tr_sequence++;
+***************
+*** 813,822 ****
+  			maclen = 
+  			    authencrypt(res_keyid, (U_LONG *)&rpkt, totlen);
+  
+!  			sendpkt(rmt_addr, lcl_inter, -1, (struct pkt *)&rpkt,
+  			    totlen + maclen);
+  		} else {
+!  			sendpkt(rmt_addr, lcl_inter, -1, (struct pkt *)&rpkt,
+  			    sendlen);
+  		}
+  		if (more)
+--- 813,822 ----
+  			maclen = 
+  			    authencrypt(res_keyid, (U_LONG *)&rpkt, totlen);
+  
+!  			sendpkt(rmt_addr, lcl_inter, -5, (struct pkt *)&rpkt,
+  			    totlen + maclen);
+  		} else {
+!  			sendpkt(rmt_addr, lcl_inter, -6, (struct pkt *)&rpkt,
+  			    sendlen);
+  		}
+  		if (more)
+***************
+*** 2605,2611 ****
+  char *
+  add_var(kv, size, def)
+       struct ctl_var **kv;
+!      U_LONG size;
+       int def;
+  {
+    register U_LONG c;
+--- 2605,2611 ----
+  char *
+  add_var(kv, size, def)
+       struct ctl_var **kv;
+!      unsigned long size;
+       int def;
+  {
+    register U_LONG c;
+***************
+*** 2634,2640 ****
+  set_var(kv, data, size, def)
+       struct ctl_var **kv;
+       char *data;
+!      U_LONG size;
+       int def;
+  {
+    register struct ctl_var *k;
+--- 2634,2640 ----
+  set_var(kv, data, size, def)
+       struct ctl_var **kv;
+       char *data;
+!      unsigned long size;
+       int def;
+  {
+    register struct ctl_var *k;
+***************
+*** 2682,2688 ****
+  void
+  set_sys_var(data, size, def)
+       char *data;
+!      U_LONG size;
+       int def;
+  {
+    set_var(&ext_sys_var, data, size, def);
+--- 2682,2688 ----
+  void
+  set_sys_var(data, size, def)
+       char *data;
+!      unsigned long size;
+       int def;
+  {
+    set_var(&ext_sys_var, data, size, def);
+*** xntpd/ntp_proto.c.DIST	Sun May 15 00:33:52 1994
+--- xntpd/ntp_proto.c	Sun May 15 13:29:26 1994
+***************
+*** 101,107 ****
+  	if ((peer->hmode != MODE_BROADCAST && peer->hmode != MODE_BCLIENT) ||
+  	    (peer->hmode == MODE_BROADCAST && sys_leap != LEAP_NOTINSYNC)) {
+  		U_LONG xkeyid;
+! 		int find_rtt = (peer->flags & MDF_MCAST);
+  
+  		/*
+  		 * Figure out which keyid to include in the packet
+--- 101,107 ----
+  	if ((peer->hmode != MODE_BROADCAST && peer->hmode != MODE_BCLIENT) ||
+  	    (peer->hmode == MODE_BROADCAST && sys_leap != LEAP_NOTINSYNC)) {
+  		U_LONG xkeyid;
+! 		int find_rtt = (peer->flags & MDF_MCAST) && (peer->hmode != MODE_BROADCAST);
+  
+  		/*
+  		 * Figure out which keyid to include in the packet
+***************
+*** 150,156 ****
+  			sendpkt(&(peer->srcadr),
+  				(find_rtt) ? any_interface : peer->dstadr,
+  				((peer->flags & MDF_MCAST) && ! find_rtt) ?
+! 				    peer->ttl : -1,
+  				&xpkt,
+  				sendlen + LEN_PKT_NOMAC);
+  #ifdef DEBUG
+--- 150,156 ----
+  			sendpkt(&(peer->srcadr),
+  				(find_rtt) ? any_interface : peer->dstadr,
+  				((peer->flags & MDF_MCAST) && ! find_rtt) ?
+! 				    peer->ttl : -7,
+  				&xpkt,
+  				sendlen + LEN_PKT_NOMAC);
+  #ifdef DEBUG
+***************
+*** 169,175 ****
+  			HTONL_FP(&peer->xmt, &xpkt.xmt);
+  			sendpkt(&(peer->srcadr),
+  				(find_rtt) ? any_interface : peer->dstadr,
+! 				((peer->flags & MDF_MCAST) && ! find_rtt) ? peer->ttl : -1,
+  				&xpkt,
+  			    LEN_PKT_NOMAC);
+  #ifdef DEBUG
+--- 169,175 ----
+  			HTONL_FP(&peer->xmt, &xpkt.xmt);
+  			sendpkt(&(peer->srcadr),
+  				(find_rtt) ? any_interface : peer->dstadr,
+! 				((peer->flags & MDF_MCAST) && ! find_rtt) ? peer->ttl : -8,
+  				&xpkt,
+  			    LEN_PKT_NOMAC);
+  #ifdef DEBUG
+***************
+*** 1069,1075 ****
+  		if (!peer->flags & FLAG_REFCLOCK && d < NTP_MINDISPERSE)
+  			d = NTP_MINDISPERSE;
+  		sys_rootdispersion = peer->rootdispersion + d;
+! 		if (peer->stratum > 0 && peer->flags & REFCLOCK)
+                  	sys_refid = peer->srcadr.sin_addr.s_addr;
+  		else
+  			sys_refid = peer->refid;
+--- 1069,1075 ----
+  		if (!peer->flags & FLAG_REFCLOCK && d < NTP_MINDISPERSE)
+  			d = NTP_MINDISPERSE;
+  		sys_rootdispersion = peer->rootdispersion + d;
+! 		if (peer->stratum > 0 && peer->flags & FLAG_REFCLOCK)
+                  	sys_refid = peer->srcadr.sin_addr.s_addr;
+  		else
+  			sys_refid = peer->refid;
+***************
+*** 1911,1917 ****
+  		L_ADDUF(&xmt_ts, sys_authdelay);
+  		HTONL_FP(&xmt_ts, &xpkt.xmt);
+  		maclen = auth2crypt(xkey, (U_LONG *)&xpkt, LEN_PKT_NOMAC);
+! 		sendpkt(&rbufp->recv_srcadr, rbufp->dstadr, -1, &xpkt,
+  			LEN_PKT_NOMAC + maclen);
+  	} else {
+  		/*
+--- 1911,1917 ----
+  		L_ADDUF(&xmt_ts, sys_authdelay);
+  		HTONL_FP(&xmt_ts, &xpkt.xmt);
+  		maclen = auth2crypt(xkey, (U_LONG *)&xpkt, LEN_PKT_NOMAC);
+! 		sendpkt(&rbufp->recv_srcadr, rbufp->dstadr, -9, &xpkt,
+  			LEN_PKT_NOMAC + maclen);
+  	} else {
+  		/*
+***************
+*** 1919,1925 ****
+  		 */
+  		get_systime(&xmt_ts);
+  		HTONL_FP(&xmt_ts, &xpkt.xmt);
+! 		sendpkt(&rbufp->recv_srcadr, rbufp->dstadr, -1, &xpkt,
+  		    LEN_PKT_NOMAC);
+  	}
+  }
+--- 1919,1925 ----
+  		 */
+  		get_systime(&xmt_ts);
+  		HTONL_FP(&xmt_ts, &xpkt.xmt);
+! 		sendpkt(&rbufp->recv_srcadr, rbufp->dstadr, -10, &xpkt,
+  		    LEN_PKT_NOMAC);
+  	}
+  }
+*** xntpd/refclock_msfees.c.DIST	Wed Apr 20 04:25:36 1994
+--- xntpd/refclock_msfees.c	Sun May 15 10:29:12 1994
+***************
+*** 1485,1491 ****
+  		out->fudgetime1	= fudgefactor[unit];
+  		out->fudgetime2	= os_delay[unit];
+  		out->fudgeval1	= (long)stratumtouse[unit];
+! 		out->fudgeval2	= debug;
+  		out->flags	= sloppyclockflag[unit];
+  		if (unitinuse[unit]) {
+  			out->flags     |= ees->dump_vals | ees->usealldata;
+--- 1485,1494 ----
+  		out->fudgetime1	= fudgefactor[unit];
+  		out->fudgetime2	= os_delay[unit];
+  		out->fudgeval1	= (long)stratumtouse[unit];
+! 		/*out->fudgeval2= debug*/;
+! 		memmove((char *)&out->fudgeval2, EESREFID, 4);
+! 		if (unit > 0 && unit < 10)
+! 			((char *)&out->fudgeval2)[3] = '0' + unit;
+  		out->flags	= sloppyclockflag[unit];
+  		if (unitinuse[unit]) {
+  			out->flags     |= ees->dump_vals | ees->usealldata;
+*** xntpdc/ntpdc_ops.c.DIST	Sat May 14 20:25:42 1994
+--- xntpdc/ntpdc_ops.c	Sun May 15 11:15:16 1994
+***************
+*** 410,416 ****
+--- 410,431 ----
+  	}
+  }
+  
++ /* Convert a refid & stratum (in host order) to a string */
++ static char*
++ refid_string(refid, stratum)
++ 	U_LONG refid;
++ 	int stratum;
++ {
++ 	if (stratum <= 1) {
++ 		static char junk[5];
++ 		junk[4] = 0;
++ 		memmove(junk, (char *)&refid, 4);
++ 		return junk;
++ 	}
+  
++ 	return numtoa(refid);
++ }
++ 
+  /*
+   * printpeer - print detail information for a peer
+   */
+***************
+*** 420,426 ****
+  	FILE *fp;
+  {
+  	register int i;
+- 	char junk[5];
+  	char *str;
+  	l_fp tempts;
+  
+--- 435,440 ----
+***************
+*** 431,448 ****
+  	    modetoa(pp->hmode), modetoa(pp->pmode),
+  	    pp->stratum, pp->precision);
+  	
+- 	if (pp->stratum <= 1) {
+- 		junk[4] = 0;
+- 		memmove(junk, (char *)&pp->refid, 4);
+- 		str = junk;
+- 	} else {
+- 		str = numtoa(pp->refid);
+- 	}
+  	(void) fprintf(fp,
+  	    "leap %c%c, refid [%s], rootdistance %s, rootdispersion %s\n",
+  	    pp->leap & 0x2 ? '1' : '0',
+  	    pp->leap & 0x1 ? '1' : '0',
+! 	    str, fptoa(NTOHS_FP(pp->rootdelay), 5),
+  	    ufptoa(NTOHS_FP(pp->rootdispersion), 5));
+  	
+  	(void) fprintf(fp,
+--- 445,455 ----
+  	    modetoa(pp->hmode), modetoa(pp->pmode),
+  	    pp->stratum, pp->precision);
+  	
+  	(void) fprintf(fp,
+  	    "leap %c%c, refid [%s], rootdistance %s, rootdispersion %s\n",
+  	    pp->leap & 0x2 ? '1' : '0',
+  	    pp->leap & 0x1 ? '1' : '0',
+! 	    refid_string(pp->refid, pp->stratum), fptoa(NTOHS_FP(pp->rootdelay), 5),
+  	    ufptoa(NTOHS_FP(pp->rootdispersion), 5));
+  	
+  	(void) fprintf(fp,
+***************
+*** 727,734 ****
+  	int items;
+  	int itemsize;
+  	int res;
+- 	char junk[5];
+- 	char *str;
+  	l_fp tempts;
+  
+  	res = doquery(IMPL_XNTPD, REQ_SYS_INFO, 0, 0, 0, (char *)NULL,
+--- 734,739 ----
+***************
+*** 754,767 ****
+  	    fptoa(NTOHS_FP(is->rootdelay), 5));
+  	(void) fprintf(fp, "root dispersion:      %s s\n",
+  	    ufptoa(NTOHS_FP(is->rootdispersion), 5));
+! 	if (is->stratum <= 1) {
+! 		junk[4] = 0;
+! 		memmove(junk, (char *)&is->refid, 4);
+! 		str = junk;
+! 	} else {
+! 		str = numtoa(is->refid);
+! 	}
+! 	(void) fprintf(fp, "reference ID:         [%s]\n", str);
+  	NTOHL_FP(&is->reftime, &tempts);
+  	(void) fprintf(fp, "reference time:       %s\n", prettydate(&tempts));
+  
+--- 759,766 ----
+  	    fptoa(NTOHS_FP(is->rootdelay), 5));
+  	(void) fprintf(fp, "root dispersion:      %s s\n",
+  	    ufptoa(NTOHS_FP(is->rootdispersion), 5));
+! 	(void) fprintf(fp, "reference ID:         [%s]\n",
+! 	    refid_string(is->refid, is->stratum));
+  	NTOHL_FP(&is->reftime, &tempts);
+  	(void) fprintf(fp, "reference time:       %s\n", prettydate(&tempts));
+  
+***************
+*** 2162,2168 ****
+  		(void) fprintf(fp, "stratum:              %ld\n",
+  		    ntohl(cl->fudgeval1));
+  		(void) fprintf(fp, "reference ID:         %s\n",
+! 		    (char *)&(ntohl(cl->fudgeval2)));
+  		(void) fprintf(fp, "fudge flags:          0x%x\n",
+  		    cl->flags);
+  
+--- 2161,2167 ----
+  		(void) fprintf(fp, "stratum:              %ld\n",
+  		    ntohl(cl->fudgeval1));
+  		(void) fprintf(fp, "reference ID:         %s\n",
+! 		    refid_string(cl->fudgeval2, 0));
+  		(void) fprintf(fp, "fudge flags:          0x%x\n",
+  		    cl->flags);
+  
+*** VERSION.DIST	Fri May 13 18:19:22 1994
+--- VERSION	Sun May 15 11:21:20 1994
+***************
+*** 1 ****
+! version=3.3u (beta multicast)
+--- 1 ----
+! version=3.3u1 (beta multicast)

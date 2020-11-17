@@ -1,0 +1,404 @@
+diff -c doc/xntpd.8:1.1.1.17 doc/xntpd.8:3.30
+*** doc/xntpd.8:1.1.1.17	Mon May 23 18:32:34 1994
+--- doc/xntpd.8	Mon May 23 18:32:34 1994
+***************
+*** 315,321 ****
+  .I ...
+  ]
+  .PP
+! Provides a way to enable various server options. Flags not mentioned are unaffected. The \*(L"auth\*(R" flag causes the server to synchronize with unconfigured peers only if the peer has been correctly authenticated using a trusted key and key identifier. The default for this flag is disable (off). The \*(L"bclient\*(R" flag causes the server to listen for a message from a broadcast or multicast server, following which an association is automatically instantiated for that server.  The default for this flag is disable (off). The \*(L"pll\*(R" flag enables the server to adjust its local clock, with default enable (on). If not set, the local clock free-runs at its intrinsic time and frequency offset. This flag is useful in case the local clock is controlled by some other device or protocol and NTP is used only to provide synchronization to other clients.  The \*(L"pps\*(R" flag enables the PPS signal, if available, with default enable (on).  No harm is done if this signal or the kernel support for it are not available. This flag is useful mainly for maintenance. The \*(L"monitor\*(R" flag enables the monitoring facility (see elsewhere), with default disable (off). The \*(L"stats\*(R" flag enables statistics facility filegen (see description elsewhere.), with default enable (on).
+  .PP
+  .B disable auth|bclient|pll|pps|monitor|stats
+  [
+--- 315,338 ----
+  .I ...
+  ]
+  .PP
+! Provides a way to enable various server options. Flags not mentioned are
+! unaffected. The \*(L"auth\*(R" flag causes the server to synchronize with
+! unconfigured peers only if the peer has been correctly authenticated using a
+! trusted key and key identifier. The default for this flag is disable (off).
+! The \*(L"bclient\*(R" flag causes the server to listen for a message from a
+! broadcast or multicast server, following which an association is automatically
+! instantiated for that server.  The default for this flag is disable (off). The
+! \*(L"pll\*(R" flag enables the server to adjust its local clock, with default
+! enable (on). If not set, the local clock free-runs at its intrinsic time and
+! frequency offset. This flag is useful in case the local clock is controlled 
+! by some other device or protocol and NTP is used only to provide 
+! synchronization to other clients.  The \*(L"pps\*(R" flag enables the PPS
+! signal, if available, with default enable (on).  No harm is done if this
+! signal or the kernel support for it are not available. This flag is useful
+! mainly for maintenance. The \*(L"monitor\*(R" flag enables the monitoring
+! facility (see elsewhere), with default disable (off). The \*(L"stats\*(R"
+! flag enables statistics facility filegen (see description elsewhere.), with 
+! default enable (on).
+  .PP
+  .B disable auth|bclient|pll|pps|monitor|stats
+  [
+***************
+*** 768,774 ****
+  .B broadcastdelay
+  .I seconds
+  .PP
+! The broadcast and multicast modes require a special calibration to determine the network delay between the local and remote servers. Ordinarily, this is done automatically by the initial protocol exchanges between the local and remote servers. In some cases, the calibration procedure may fail due to network or server access controls, for example. This command specifies the default delay to be used under these circumstances. Typically (for Ethernet), a number between 0.003 and 0.007 seconds is appropriate. The default when this command is not used is 0.004 seconds.
+  .PP
+  .B trap
+  .I host_address
+--- 785,798 ----
+  .B broadcastdelay
+  .I seconds
+  .PP
+! The broadcast and multicast modes require a special calibration to determine
+! the network delay between the local and remote servers. Ordinarily, this is
+! done automatically by the initial protocol exchanges between the local and
+! remote servers. In some cases, the calibration procedure may fail due to
+! network or server access controls, for example. This command specifies the
+! default delay to be used under these circumstances. Typically (for Ethernet),
+! a number between 0.003 and 0.007 seconds is appropriate. The default when
+! this command is not used is 0.004 seconds.
+  .PP
+  .B trap
+  .I host_address
+***************
+*** 834,841 ****
+  authenticity of received NTP packets, and to provide an indication of
+  authenticity in outgoing packets.  This is implemented in
+  .I xntpd
+! using the DES or MD5 algorithms to compute a digital signature, or message-digest.  The specification allows any one of possibly 4 billion keys, numbered with 32 bit key identifiers, to be used to authenticate an association.  The servers involved in an association must agree on the key and key identifier used to authenticate their data, though
+! they must each learn the key and key identifer independently.  In the case of DES, the keys are 56 bits long with, depending on type, a parity check on each byte.  In the case of MD5, the keys are 64 bits (8 bytes).
+  .I xntpd
+  reads its keys from a file specified using the
+  .B -k
+--- 858,871 ----
+  authenticity of received NTP packets, and to provide an indication of
+  authenticity in outgoing packets.  This is implemented in
+  .I xntpd
+! using the DES or MD5 algorithms to compute a digital signature, or
+! message-digest.  The specification allows any one of possibly 4 billion keys,
+! numbered with 32 bit key identifiers, to be used to authenticate an
+! association.  The servers involved in an association must agree on the key
+! and key identifier used to authenticate their data, though
+! they must each learn the key and key identifer independently.  In the case of
+! DES, the keys are 56 bits long with, depending on type, a parity check on each
+! byte.  In the case of MD5, the keys are 64 bits (8 bytes).
+  .I xntpd
+  reads its keys from a file specified using the
+  .B -k
+***************
+*** 978,984 ****
+  options are specified in fixed point seconds and used in some clock
+  drivers as calibration constants. By convention, and unless indicated otherwise,
+  .B time1
+! is used as a calibration constant to adjust the nominal time offset of a particular clock to agree with an external standard, such as a precision PPS signal. The specified offset is in addition to the propagation delay provided by other means, such as internal DIPswitches. The
+  .B stratum
+  option is a number in the range zero to 15 and is used to assign a
+  nonstandard operating stratum to the clock. The
+--- 1008,1017 ----
+  options are specified in fixed point seconds and used in some clock
+  drivers as calibration constants. By convention, and unless indicated otherwise,
+  .B time1
+! is used as a calibration constant to adjust the nominal time offset of a
+! particular clock to agree with an external standard, such as a precision PPS
+! signal. The specified offset is in addition to the propagation delay provided
+! by other means, such as internal DIPswitches. The
+  .B stratum
+  option is a number in the range zero to 15 and is used to assign a
+  nonstandard operating stratum to the clock. The
+***************
+*** 1122,1128 ****
+  Timing Receivers, the 468-DC MK III GOES Synchronized Clock and GPS-DC
+  MK III GPS Synchronized Clock and very likely others in the same model
+  family that use the same timecode formats. The clocks are connected
+! via a serial port.  Up to four units, with unit numbers in the range 0 through 3, can be configured.  The driver assumes the serial port device name is /dev/goes%d (i.e., unit 1 at 127.127.5.1 opens the clock at
+  /dev/goes1) and that the clock is configured for 9600-baud operation.
+  .PP
+  .B 127.127.6.0
+--- 1155,1163 ----
+  Timing Receivers, the 468-DC MK III GOES Synchronized Clock and GPS-DC
+  MK III GPS Synchronized Clock and very likely others in the same model
+  family that use the same timecode formats. The clocks are connected
+! via a serial port.  Up to four units, with unit numbers in the range 0 through
+! 3, can be configured.  The driver assumes the serial port device name is
+! /dev/goes%d (i.e., unit 1 at 127.127.5.1 opens the clock at
+  /dev/goes1) and that the clock is configured for 9600-baud operation.
+  .PP
+  .B 127.127.6.0
+***************
+*** 1161,1171 ****
+  .PP
+  Unlike the NIST time services, whose timecode requires quite specialized
+  hardware to interpret, the CHU timecode can be received directly via
+! a serial port after demodulation. While there are currently no known commercial CHU receivers, the hardware required to receive the CHU timecode is fairly simple to build. While it is possible to configure several CHU units simultaneously, this is in general not useful.
+  .PP
+  The
+  .B time1
+! option can be used to set the CHU propagation delay. compensate for inherent latencies in the serial port hardware and operating system. The
+  default value is 0.0025 seconds, which is about right for Toronto.
+  Values for other locations can be calculated using the
+  .B propdelay
+--- 1196,1210 ----
+  .PP
+  Unlike the NIST time services, whose timecode requires quite specialized
+  hardware to interpret, the CHU timecode can be received directly via
+! a serial port after demodulation. While there are currently no known commercial
+! CHU receivers, the hardware required to receive the CHU timecode is fairly
+! simple to build. While it is possible to configure several CHU units
+! simultaneously, this is in general not useful.
+  .PP
+  The
+  .B time1
+! option can be used to set the CHU propagation delay. compensate for inherent
+! latencies in the serial port hardware and operating system. The
+  default value is 0.0025 seconds, which is about right for Toronto.
+  Values for other locations can be calculated using the
+  .B propdelay
+***************
+*** 1178,1184 ****
+  port hardware and operating system. The value, which defaults to zero,
+  is in addition to the propagation delay provided by the
+  .B time1
+! option. The default value is 0.0002 seconds, which is about right for typical telephone modem chips.
+  .PP
+  The
+  .B flag1
+--- 1217,1224 ----
+  port hardware and operating system. The value, which defaults to zero,
+  is in addition to the propagation delay provided by the
+  .B time1
+! option. The default value is 0.0002 seconds, which is about right for typical
+! telephone modem chips.
+  .PP
+  The
+  .B flag1
+***************
+*** 1203,1209 ****
+  .br
+  The actual receiver status is mapped into various synchronisation
+  states generally used by receivers. The STREAMS module is configured to
+! interpret the time codes of DCF U/A 31, PZF535, GPS166, Trimble SV6 GPS, ELV DCF7000, Schmid and low cost receivers (see list below).
+  .br
+  The reference clock support in xntp contains the necessary configuration
+  tables for those receivers. In addition to supporting up to 32 different
+--- 1243,1250 ----
+  .br
+  The actual receiver status is mapped into various synchronisation
+  states generally used by receivers. The STREAMS module is configured to
+! interpret the time codes of DCF U/A 31, PZF535, GPS166, Trimble SV6 GPS,
+! ELV DCF7000, Schmid, IGEL and low cost receivers (see list below).
+  .br
+  The reference clock support in xntp contains the necessary configuration
+  tables for those receivers. In addition to supporting up to 32 different
+***************
+*** 1307,1312 ****
+--- 1348,1355 ----
+  Meinberg GPS166 receiver (GPS / <<1us)
+  .Ip 127.127.8.32-35 16
+  Trimble SV6 GPS receiver (GPS / <<1us)
++ .Ip 127.127.8.36-39 16
++ IGEL clock (IGEL DCF77 receiver module / 5 ms)
+  .PP
+  The reference clock support carefully monitors the state transitions of
+  the receiver. All state changes and exceptional events such as loss of
+***************
+*** 1358,1370 ****
+  127.127.9.u
+  \- Magnavox MX4200 Navigation Receiver used as GPS Synchronized Clocks
+  .PP
+! This driver supports the Magnavox MX4200 Navigation Receiver adapted to precision timing applications. This requires an interface box described in the ./ppsclock directory of the xntp3 distribution. It is connected via a serial port and requires the ppsclock STREAMS module described in the same directory.  Up to four units, with unit numbers in the range 0 through 3, can be configured. The driver assumes the serial port device name is /dev/gps%d (i.e., unit 1 at 127.127.9.1 opens the clock at
+  /dev/gps1) and that the clock is configured for 9600-baud operation.
+  .PP
+  127.127.10.u
+  \- Austron 2200A/2201A GPS/LORAN Synchronized Clock and Timing Receiver
+  .PP
+! This driver supports the Austron 2200A/2201A GPS/LORAN Synchronized Clock and Timing Receiver connected via a serial port.  It supports several special features of the clock, including the Input Burffer Module, Output Buffer Module, IRIG-B Interface Module and LORAN Assist Module. It requires the RS232 Serial Interface module for communication with the driver. Up to four units (which hardly seems affordable), with unit numbers in the range 0 through 3, can be configured.  The driver assumes the serial port device name is /dev/gps%d (i.e., unit 1 at 127.127.10.1 opens the clock at /dev/gps1) and that the clock is configured for 9600-baud operation.
+  .PP
+  This receiver is capable of a comprehensive and large volume of
+  statistics and operational data. The specific data collection
+--- 1401,1427 ----
+  127.127.9.u
+  \- Magnavox MX4200 Navigation Receiver used as GPS Synchronized Clocks
+  .PP
+! This driver supports the Magnavox MX4200 Navigation Receiver adapted to
+! precision timing applications. This requires an interface box described in
+! the ./ppsclock directory of the xntp3 distribution. It is connected via a
+! serial port and requires the ppsclock STREAMS module described in the same 
+! directory.  Up to four units, with unit numbers in the range 0 through 3, can 
+! be configured. The driver assumes the serial port device name is /dev/gps%d
+! (i.e., unit 1 at 127.127.9.1 opens the clock at
+  /dev/gps1) and that the clock is configured for 9600-baud operation.
+  .PP
+  127.127.10.u
+  \- Austron 2200A/2201A GPS/LORAN Synchronized Clock and Timing Receiver
+  .PP
+! This driver supports the Austron 2200A/2201A GPS/LORAN Synchronized Clock and
+! Timing Receiver connected via a serial port.  It supports several special
+! features of the clock, including the Input Burffer Module, Output Buffer 
+! Module, IRIG-B Interface Module and LORAN Assist Module. It requires the RS232
+! Serial Interface module for communication with the driver. Up to four units
+! (which hardly seems affordable), with unit numbers in the range 0 through 3, 
+! can be configured.  The driver assumes the serial port device name is
+! /dev/gps%d (i.e., unit 1 at 127.127.10.1 opens the clock at /dev/gps1) and
+! that the clock is configured for 9600-baud operation.
+  .PP
+  This receiver is capable of a comprehensive and large volume of
+  statistics and operational data. The specific data collection
+***************
+*** 1413,1419 ****
+  number 0 is acceptable. The driver assumes the device name is
+  /dev/tpro0.
+  .PP
+! Using the TPRO interface as a NTP reference clock provides precision time only to
+  .I xntpd
+  and its clients. With suitable kernel modifications, it is possible to
+  use the TPRO as the CPU system clock, avoiding errors introduced by the
+--- 1470,1477 ----
+  number 0 is acceptable. The driver assumes the device name is
+  /dev/tpro0.
+  .PP
+! Using the TPRO interface as a NTP reference clock provides precision time only
+! to
+  .I xntpd
+  and its clients. With suitable kernel modifications, it is possible to
+  use the TPRO as the CPU system clock, avoiding errors introduced by the
+***************
+*** 1424,1431 ****
+  127.127.13.u
+  \- Leitch CSD 500 Controller with HP 5061A Atomic Clock
+  .PP
+! This driver supports the Leitch CSD 500 Controller and HP 5061A Atomic Clock or equivalent primary timing source and connected via a serial port. Up to four units, with unit numbers in the range 0 through 3, can be configured. The driver assumes the serial port device name is /dev/leitch%d (i.e., unit 1 at 127.127.13.1 opens the clock at
+! /dev/leitch1) and that the clock is configured for 300-baud operation.
+  .PP
+  127.127.14.u
+  \- EES M201 MSF receiver
+--- 1482,1493 ----
+  127.127.13.u
+  \- Leitch CSD 500 Controller with HP 5061A Atomic Clock
+  .PP
+! This driver supports the Leitch CSD 500 Controller and HP 5061A Atomic Clock
+! or equivalent primary timing source and connected via a serial port. Up to
+! units, with unit numbers in the range 0 through 3, can be configured. The
+! driver assumes the serial port device name is /dev/leitch%d (i.e., unit 1 at
+! 127.127.13.1 opens the clock at /dev/leitch1) and that the clock is
+! configured for 300-baud operation.
+  .PP
+  127.127.14.u
+  \- EES M201 MSF receiver
+***************
+*** 1486,1489 ****
+  .SH BUGS
+  .PP
+  .I xntpd
+! has gotten rather fat. While not huge, it has gotten larger than might be desireable for an elevated\-priority daemon running on a workstation, particularly since many of the fancy features which consume the space were designed more with a busy primary server, rather than a high stratum workstation, in mind.
+--- 1548,1555 ----
+  .SH BUGS
+  .PP
+  .I xntpd
+! has gotten rather fat. While not huge, it has gotten larger than might be
+! desireable for an elevated\-priority daemon running on a workstation, 
+! particularly since many of the fancy features which consume the space were
+! designed more with a busy primary server, rather than a high stratum
+! workstation, in mind.
+diff -c doc/xntpdc.8:1.1.1.7 doc/xntpdc.8:3.8
+*** doc/xntpdc.8:1.1.1.7	Mon May 23 18:32:36 1994
+--- doc/xntpdc.8	Mon May 23 18:32:36 1994
+***************
+*** 328,334 ****
+  .PP
+  .B sysinfo
+  .PP
+! Print a variety of system state variables, i.e. state related to the local server.  All except the last four lines are described in the NTP Version 3 specification, RFC 1305. The \*(L"system flags\*(R" show various system flags, some of which can be set and cleared by the \*(L"enable\*(R" and \*(L"disable\*(R" configuration commands, respectively. The \*(L"stability\*(R" is the residual frequency error remaining after the system frequency correction is applied and is intended for maintenance and debugging. In most architectures, this value will initially decrease from as high as 500 ppm to a nominal value in the range .01 to 0.1 ppm. If it remains high for some time after starting the daemon, something may be wrong with the local clock, or the value of the kernel variable \*(L"tick\*(R" may be incorrect.  The \*(L"broadcastdelay\*(R" shows the default broadcast delay, as set by the \*(L"broadcastdelay\*(R" configuration command, while the \*(L"authdelay\*(R" shows the default authentication delay, as set by the \*(L"authdelay\*(R" configuration command.
+  .PP
+  .B sysstats
+  .PP
+--- 328,348 ----
+  .PP
+  .B sysinfo
+  .PP
+! Print a variety of system state variables, i.e. state related to the local
+! server.  All except the last four lines are described in the NTP Version 3
+! specification, RFC 1305. The \*(L"system flags\*(R" show various system flags,
+! some of which can be set and cleared by the \*(L"enable\*(R" and
+! \*(L"disable\*(R" configuration commands, respectively. The
+! \*(L"stability\*(R" is the residual frequency error remaining after the
+! system frequency correction is applied and is intended for maintenance and
+! debugging. In most architectures, this value will initially decrease from as
+! high as 500 ppm to a nominal value in the range .01 to 0.1 ppm. If it remains
+! high for some time after starting the daemon, something may be wrong with the
+! local clock, or the value of the kernel variable \*(L"tick\*(R" may be
+! incorrect.  The \*(L"broadcastdelay\*(R" shows the default broadcast delay, as
+! set by the \*(L"broadcastdelay\*(R" configuration command, while the
+! \*(L"authdelay\*(R" shows the default authentication delay, as set by the
+! \*(L"authdelay\*(R" configuration command.
+  .PP
+  .B sysstats
+  .PP
+***************
+*** 372,378 ****
+  .I addr4
+  ]
+  .PP
+! Obtain debugging information for a reference clock driver. This information is provided only by some clock drivers and is mostly undecodable without a copy of the driver source in hand.
+  .SH RUNTIME CONFIGURATION REQUESTS
+  .PP
+  All requests which cause state changes in the server are authenticated
+--- 386,394 ----
+  .I addr4
+  ]
+  .PP
+! Obtain debugging information for a reference clock driver. This information is
+! provided only by some clock drivers and is mostly undecodable without a copy
+! of the driver source in hand.
+  .SH RUNTIME CONFIGURATION REQUESTS
+  .PP
+  All requests which cause state changes in the server are authenticated
+***************
+*** 498,504 ****
+  .I ...
+  ]
+  .PP
+! Provides a way to enable various server options. Flags not mentioned are unaffected. The \*(L"auth\*(R" flag causes the server to synchronize with unconfigured peers only if the peer has been correctly authenticated using a trusted key and key identifier. The default for this flag is disable (off). The \*(L"bclient\*(R" flag causes the server to listen for a message from a broadcast or multicast server, following which an association is automatically instantiated for that server.  The default for this flag is disable (off). The \*(L"pll\*(R" flag enables the server to adjust its local clock, with default enable (on). If not set, the local clock free-runs at its intrinsic time and frequency offset. This flag is useful in case the local clock is controlled by some other device or protocol and NTP is used only to provide synchronization to other clients.  The \*(L"pps\*(R" flag enables the PPS signal, if available, with default enable (on).  No harm is done if this signal or the kernel support for it are not available. This flag is useful mainly for maintenance. The \*(L"monitor\*(R" flag enables the monitoring facility (see elsewhere), with default disable (off). The \*(L"stats\*(R" flag enables statistics facility filegen (see description elsewhere.), with default enable (on).
+  .PP
+  .B disable auth|bclient|pll|pps|monitor|stats
+  [
+--- 514,536 ----
+  .I ...
+  ]
+  .PP
+! Provides a way to enable various server options. Flags not mentioned are
+! unaffected. The \*(L"auth\*(R" flag causes the server to synchronize with
+! unconfigured peers only if the peer has been correctly authenticated using a
+! trusted key and key identifier. The default for this flag is disable (off). 
+! The \*(L"bclient\*(R" flag causes the server to listen for a message from a
+! broadcast or multicast server, following which an association is automatically
+! instantiated for that server.  The default for this flag is disable (off). The
+! \*(L"pll\*(R" flag enables the server to adjust its local clock, with default 
+! enable (on). If not set, the local clock free-runs at its intrinsic time and
+! frequency offset. This flag is useful in case the local clock is controlled by
+! some other device or protocol and NTP is used only to provide synchronization
+! to other clients.  The \*(L"pps\*(R" flag enables the PPS signal, if available,
+! with default enable (on).  No harm is done if this signal or the kernel 
+! support for it are not available. This flag is useful mainly for maintenance.
+! The \*(L"monitor\*(R" flag enables the monitoring facility (see elsewhere),
+! with default disable (off). The \*(L"stats\*(R" flag enables statistics
+! facility filegen (see description elsewhere.), with default enable (on).
+  .PP
+  .B disable auth|bclient|pll|pps|monitor|stats
+  [
+***************
+*** 627,633 ****
+  ]
+  .PP
+  Adds one or more keys to the trusted key list.  When authentication
+! is enabled, peers whose time is to be trusted must be authenticated using a trusted key.
+  .PP
+  .B untrustkey
+  .I keyid
+--- 659,666 ----
+  ]
+  .PP
+  Adds one or more keys to the trusted key list.  When authentication
+! is enabled, peers whose time is to be trusted must be authenticated using a
+! trusted key.
+  .PP
+  .B untrustkey
+  .I keyid

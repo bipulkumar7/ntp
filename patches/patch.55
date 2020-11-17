@@ -1,0 +1,172 @@
+
+Received: from louie.udel.edu by huey.udel.edu id aa00451; 2 May 94 9:01 EDT
+Received: from newdaisy.ee.und.ac.za by louie.udel.edu id aa18297;
+          2 May 94 8:54 EDT
+Received: by newdaisy.ee.und.ac.za (Smail3.1.28.1 #10)
+	id m0pxxV7-0007UgC; Mon, 2 May 94 14:53 EET
+Date: Mon, 2 May 1994 14:53:29 +0200 (GMT+0200)
+From: Alan Barrett <barrett@daisy.ee.und.ac.za>
+Subject: htonl(INADDR_NTP)
+To: Frank Kardel <Frank.Kardel@informatik.uni-erlangen.de>, 
+    "David L. Mills" <mills@udel.edu>
+Message-ID: <Pine.3.89.9405021402.G9941-0100000@newdaisy.ee.und.ac.za>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+
+I hope that I am sending this message to the right place...
+
+The new multicasting code in xntp3.3* needs to use htonl(INADDR_NTP),
+not just INADDR_NTP.
+
+When I made this change, I also grepped for other places that need
+htonl(), and I found several uses of INADDR_ANY that should really be
+htonl(INADDR_ANY).  Since we know that INADDR_ANY is zero, applying
+htonl() to INADDR_ANY does nothing much, but I think that it is
+nevertheless useful to use htonl() consistently, wherever a value that
+is logically in host order needs conversion to network order, even if
+we know that the conversion is unnecessary for the special case of
+INADDR_ANY.
+
+I append a patch that adds the htonl() calls mentioned above.
+
+--apb
+Alan Barrett, Dept. of Electronic Eng., Univ. of Natal, Durban, South Africa
+RFC822: barrett@ee.und.ac.za
+
+--- xntp3.3t/ntpdate/ntpdate.c	Thu Jan 27 16:03:36 1994
++++ xntp3.3t-apb/ntpdate/ntpdate.c	Mon May  2 13:50:49 1994
+@@ -1191,7 +1191,7 @@
+ 		memset((char *)&addr, 0, sizeof addr);
+ 		addr.sin_family = AF_INET;
+ 		addr.sin_port = htons(NTP_PORT);
+-		addr.sin_addr.s_addr = INADDR_ANY;
++		addr.sin_addr.s_addr = htonl(INADDR_ANY);
+ 		if (bind(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+ 			if (errno == EADDRINUSE)
+ 				syslog(LOG_ERR,
+--- xntp3.3t/xntpd/ntp_config.c	Sat Apr 30 19:27:02 1994
++++ xntp3.3t-apb/xntpd/ntp_config.c	Mon May  2 14:08:59 1994
+@@ -538,7 +538,7 @@
+ 			break;
+ 
+ 		case 'm':
+-			proto_config(PROTO_MULTICAST_ADD, INADDR_NTP);
++			proto_config(PROTO_MULTICAST_ADD, htonl(INADDR_NTP));
+ 			break;
+ 
+ 		case 'p':
+@@ -812,7 +812,7 @@
+ 						    peeraddr.sin_addr.s_addr);
+ 				}
+ 			} else
+-				proto_config(PROTO_MULTICAST_ADD, INADDR_NTP);
++				proto_config(PROTO_MULTICAST_ADD, htonl(INADDR_NTP));
+ 			break;
+ 
+ 		case CONFIG_AUTHENTICATE:
+@@ -938,7 +938,7 @@
+ 				break;
+ 			}
+ 			if (STREQ(tokens[1], "default"))
+-				peeraddr.sin_addr.s_addr = INADDR_ANY;
++				peeraddr.sin_addr.s_addr = htonl(INADDR_ANY);
+ 			else if (!getnetnum(tokens[1], &peeraddr, 1))
+ 				break;
+ 			
+@@ -1008,7 +1008,7 @@
+ 					break;
+ 				}
+ 			}
+-			if (SRCADR(&peeraddr) == INADDR_ANY)
++			if (SRCADR(&peeraddr) == htonl(INADDR_ANY))
+ 				maskaddr.sin_addr.s_addr = 0;
+ 			if (!errflg)
+ 				restrict(RESTRICT_FLAGS, &peeraddr, &maskaddr,
+--- xntp3.3t/xntpd/ntp_io.c	Thu Apr 28 01:58:10 1994
++++ xntp3.3t-apb/xntpd/ntp_io.c	Mon May  2 14:04:11 1994
+@@ -225,7 +225,7 @@
+ 	 */
+ 	inter_list[0].sin.sin_family = AF_INET;
+ 	inter_list[0].sin.sin_port = port;
+-	inter_list[0].sin.sin_addr.s_addr = INADDR_ANY;
++	inter_list[0].sin.sin_addr.s_addr = htonl(INADDR_ANY);
+ 	(void) strncpy(inter_list[0].name, "wildcard",
+ 	     sizeof(inter_list[0].name));
+ 	inter_list[0].mask.sin_addr.s_addr = htonl(~0);
+@@ -409,7 +409,7 @@
+ 	/*
+ 	 * enable possible multicast reception on the broadcast socket
+ 	 */
+-	inter_list[0].bcast.sin_addr.s_addr = INADDR_ANY;
++	inter_list[0].bcast.sin_addr.s_addr = htonl(INADDR_ANY);
+ 	inter_list[0].bcast.sin_family = AF_INET;
+ 	inter_list[0].bcast.sin_port = port;
+ #endif /* MCAST */
+@@ -462,7 +462,7 @@
+ 		if (inter_list[i].flags & INT_BCASTOPEN)
+ 			continue;
+ #ifdef	SOLARIS
+-		inter_list[i].bcast.sin_addr.s_addr = INADDR_ANY;
++		inter_list[i].bcast.sin_addr.s_addr = htonl(INADDR_ANY);
+ #endif
+ #ifndef SYS_DOMAINOS
+ 		inter_list[i].bfd = open_socket(&inter_list[i].bcast, 0);
+@@ -493,7 +493,7 @@
+ 	 * enable reception of multicast packets
+ 	 */
+ 	mreq.imr_multiaddr.s_addr = addr;
+-	mreq.imr_interface.s_addr = INADDR_ANY;
++	mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+ 	if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
+ 	    (char *)&mreq, sizeof(mreq)) == -1)
+ 		syslog(LOG_ERR, "setsockopt IP_ADD_MEMBERSHIP fails: %m");
+@@ -536,7 +536,7 @@
+ 	 * disable reception of multicast packets
+ 	 */
+ 	mreq.imr_multiaddr.s_addr = addr;
+-	mreq.imr_interface.s_addr = INADDR_ANY;
++	mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+ 	if (setsockopt(fd, IPPROTO_IP, IP_DROP_MEMBERSHIP,
+ 	    (char *)&mreq, sizeof(mreq)) == -1)
+ 		syslog(LOG_ERR, "setsockopt IP_DROP_MEMBERSHIP fails: %m");
+--- xntp3.3t/xntpd/ntp_request.c	Tue Apr 26 02:11:17 1994
++++ xntp3.3t-apb/xntpd/ntp_request.c	Mon May  2 14:09:51 1994
+@@ -1452,7 +1452,7 @@
+ 			bad = 1;
+ 		if (cr->flags & ~(RES_ALLFLAGS))
+ 			bad = 1;
+-		if (cr->addr == INADDR_ANY && cr->mask != INADDR_ANY)
++		if (cr->addr == htonl(INADDR_ANY) && cr->mask != htonl(INADDR_ANY))
+ 			bad = 1;
+ 		cr++;
+ 	}
+--- xntp3.3t/xntpd/ntp_restrict.c	Thu Feb  3 07:20:20 1994
++++ xntp3.3t-apb/xntpd/ntp_restrict.c	Mon May  2 14:10:49 1994
+@@ -116,7 +116,7 @@
+ 	 * list as our default entry.  Everything in here
+ 	 * should be zero for now.
+ 	 */
+-	resinit[0].addr = INADDR_ANY;
++	resinit[0].addr = htonl(INADDR_ANY);
+ 	resinit[0].mask = 0;
+ 	restrictlist = &resinit[0];
+ 	restrictcount = 1;
+@@ -329,7 +329,7 @@
+ 	 * If this is the default address, point at first on list.  Else
+ 	 * go searching for it.
+ 	 */
+-	if (addr == INADDR_ANY) {
++	if (addr == htonl(INADDR_ANY)) {
+ 		rlprev = 0;
+ 		rl = restrictlist;
+ 	} else {
+@@ -433,7 +433,7 @@
+ 		 * interface entry.
+ 		 */
+ 		if (rl != 0
+-		    && rl->addr != INADDR_ANY
++		    && rl->addr != htonl(INADDR_ANY)
+ 		    && !(rl->mflags & RESM_INTERFACE)) {
+ 			rlprev->next = rl->next;
+ 			restrictcount--;
+

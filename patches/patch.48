@@ -1,0 +1,65 @@
+
+Received: from snow-white.ee.udel.edu by huey.udel.edu id aa03424;
+          27 Apr 94 12:13 EDT
+Received: from louie.udel.edu by snow-white.ee.udel.edu id aa08221;
+          27 Apr 94 12:08 EDT
+Received: from snow-white.ee.udel.edu by malarky.udel.edu id aa15629;
+          27 Apr 94 16:06 GMT
+To: mills@udel.edu
+cc: ajit@albert.udel.edu
+Subject: patch for ntp_io.c
+Date: Wed, 27 Apr 1994 16:06:08 +0000
+From: Ajit Thyagarajan <ajit@ee.udel.edu>
+Message-ID:  <9404271606.aa15629@malarky.udel.edu>
+
+
+
+*** ntp_io.c	Tue Apr 26 00:50:51 1994
+--- /m/pogo/ajit/xntp3/xntpd/ntp_io.c	Wed Apr 27 15:49:11 1994
+***************
+*** 480,490 ****
+  	U_LONG addr;
+  {
+  #ifdef MCAST
+! 	int fd = inter_list[0].bfd;
+  	struct ip_mreq mreq;
+  
+  	if (!IN_CLASSD(addr))
+  		return;
+  	/*
+  	 * enable reception of multicast packets
+  	 */
+--- 480,494 ----
+  	U_LONG addr;
+  {
+  #ifdef MCAST
+! 	int fd;
+  	struct ip_mreq mreq;
+  
+  	if (!IN_CLASSD(addr))
+  		return;
++ 
++ 	inter_list[0].bfd = open_socket(&inter_list[0].bcast, 0);
++ 	fd = inter_list[0].bfd;
++ 
+  	/*
+  	 * enable reception of multicast packets
+  	 */
+***************
+*** 523,529 ****
+  	U_LONG addr;
+  {
+  #ifdef MCAST
+! 	int fd = inter_list[0].fd;
+  	struct ip_mreq mreq;
+  
+  	if (!IN_CLASSD(addr))
+--- 527,533 ----
+  	U_LONG addr;
+  {
+  #ifdef MCAST
+! 	int fd = inter_list[0].bfd;
+  	struct ip_mreq mreq;
+  
+  	if (!IN_CLASSD(addr))
+

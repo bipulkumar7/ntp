@@ -1,0 +1,140 @@
+
+Received: from louie.udel.edu by huey.udel.edu id aa02571; 21 Apr 94 17:26 EDT
+Received: from adrastea.lcs.mit.edu by louie.udel.edu id aa06648;
+          21 Apr 94 17:18 EDT
+Received: by adrastea.lcs.mit.edu; id AA16124; Thu, 21 Apr 1994 17:18:42 -0400
+Date: Thu, 21 Apr 1994 17:18:42 -0400
+From: Garrett Wollman <wollman@adrastea.lcs.mit.edu>
+Message-Id: <9404212118.AA16124@adrastea.lcs.mit.edu>
+To: Dave Mills <Mills@udel.edu>
+Subject: Kernel pll stuff
+
+I've made the following changes to the timex.h that you distribute in
+kernel.tar.Z to make it integrate nicely into FreeBSD.  I also created
+a new NTP configuration define `NTP_SYSCALLS_LIBC', which is defined
+when ntp_adjtime() and ntp_gettime() are in libc, and tells various
+bits in ntp_loopfilter.c, ntp_control.c, and one other file not to
+bother with the syscall(SYS_ntp_adjtime, blah) hack.  Only the first
+patch is included here; I don't want to see the latter bit in xntpd
+until we actually start distributing a libc that has them in it...
+
+
+*** timex.h.orig        Thu Apr 21 12:35:21 1994
+--- timex.h     Thu Apr 21 12:44:38 1994
+***************
+*** 61,66 ****
+--- 61,69 ----
+   *    struct timex *tptr              pointer to timex structure
+   *
+   */
++ #ifndef _SYS_TIMEX_H_
++ #define _SYS_TIMEX_H_ 1
++ 
+  #ifndef MSDOS                 /* Microsoft specific */
+  #include <sys/syscall.h>
+  #endif /* MSDOS */
+***************
+*** 195,202 ****
+  #define MOD_ESTERROR  0x0008  /* set estimated time error */
+  #define MOD_STATUS    0x0010  /* set clock status bits */
+  #define MOD_TIMECONST 0x0020  /* set pll time constant */
+! #define MOD_CLKB      0x4000  /* set clock B
+! #define MOD_CLKA      0x8000  /* set clock A
+  
+  /*
+   * Status codes (timex.status)
+--- 198,205 ----
+  #define MOD_ESTERROR  0x0008  /* set estimated time error */
+  #define MOD_STATUS    0x0010  /* set clock status bits */
+  #define MOD_TIMECONST 0x0020  /* set pll time constant */
+! #define MOD_CLKB      0x4000  /* set clock B */
+! #define MOD_CLKA      0x8000  /* set clock A */
+  
+  /*
+   * Status codes (timex.status)
+***************
+*** 271,273 ****
+--- 274,290 ----
+        long stbcnt;            /* stability limit exceeded (ro) */
+  
+  };
++ #ifdef __FreeBSD__
++ 
++ #ifndef KERNEL
++ #include <sys/cdefs.h>
++ 
++ __BEGIN_DECLS
++ extern int ntp_gettime        __P((struct ntptimeval *));
++ extern int ntp_adjtime        __P((struct timex *));
++ __END_DECLS
++ 
++ #endif /* not KERNEL */
++ 
++ #endif /* __FreeBSD__ */
++ #endif /* _SYS_TIMEX_H_ */
+
+
+-GAWollman
+
+--
+Garrett A. Wollman   | Shashish is simple, it's discreet, it's brief. ... 
+wollman@lcs.mit.edu  | Shashish is the bonding of hearts in spite of distance.
+formerly known as    | It is a bond more powerful than absence.  We like people
+wollman@emba.uvm.edu | who like Shashish.  - Claude McKenzie + Florent Vollant
+
+
+Received: from snow-white.ee.udel.edu by huey.udel.edu id aa06660;
+          22 Apr 94 11:14 EDT
+Received: from louie.udel.edu by snow-white.ee.udel.edu id aa22423;
+          22 Apr 94 11:09 EDT
+Received: from snow-white.ee.udel.edu by stimpy.eecis.udel.edu id aa07659;
+          22 Apr 94 15:08 GMT
+To: mills@eecis.udel.edu
+cc: ajit@albert.udel.edu
+Subject: First of the diffs
+Date: Fri, 22 Apr 1994 11:08:30 -0400
+From: Ajit Thyagarajan <ajit@udel.edu>
+Message-ID:  <9404221508.aa07659@stimpy.eecis.udel.edu>
+
+
+This is the first diff to enable reception of multicast packets only when
+set up as a multicast client.
+
+
+*** xntpd/ntp_io.c	Wed Apr 20 03:04:35 1994
+--- ../../ajit/xntp3/xntpd/ntp_io.c	Fri Apr 22 15:06:01 1994
+***************
+*** 231,239 ****
+  	inter_list[0].sent = 0;
+  	inter_list[0].notsent = 0;
+  	inter_list[0].flags = INT_BROADCAST;
+- #ifdef MCAST
+- 	inter_list[0].flags |= INT_MULTICAST;
+- #endif /* MCAST */
+  
+  #ifdef USE_STREAMS_DEVICE_FOR_IF_CONFIG
+  	if ((vs = open("/dev/ip", O_RDONLY)) < 0) {
+--- 231,236 ----
+***************
+*** 485,490 ****
+--- 482,489 ----
+  	if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
+  	    (char *)&mreq, sizeof(mreq)) == -1)
+  		syslog(LOG_ERR, "setsockopt IP_ADD_MEMBERSHIP fails: %m");
++ 
++ 	inter_list[0].flags |= INT_MULTICAST;
+  }
+  #endif /* MCAST */
+  
+***************
+*** 527,532 ****
+--- 526,533 ----
+  	if (setsockopt(fd, IPPROTO_IP, IP_DROP_MEMBERSHIP,
+  	    (char *)&mreq, sizeof(mreq)) == -1)
+  		syslog(LOG_ERR, "setsockopt IP_DROP_MEMBERSHIP fails: %m");
++ 
++ 	inter_list[0].flags &= ~INT_MULTICAST;
+  }
+  #endif /* MCAST */
+  
+

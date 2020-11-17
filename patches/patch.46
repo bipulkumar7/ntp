@@ -1,0 +1,56 @@
+
+Received: from snow-white.ee.udel.edu by huey.udel.edu id aa06660;
+          22 Apr 94 11:14 EDT
+Received: from louie.udel.edu by snow-white.ee.udel.edu id aa22423;
+          22 Apr 94 11:09 EDT
+Received: from snow-white.ee.udel.edu by stimpy.eecis.udel.edu id aa07659;
+          22 Apr 94 15:08 GMT
+To: mills@eecis.udel.edu
+cc: ajit@albert.udel.edu
+Subject: First of the diffs
+Date: Fri, 22 Apr 1994 11:08:30 -0400
+From: Ajit Thyagarajan <ajit@udel.edu>
+Message-ID:  <9404221508.aa07659@stimpy.eecis.udel.edu>
+
+
+This is the first diff to enable reception of multicast packets only when
+set up as a multicast client.
+
+
+*** xntpd/ntp_io.c	Wed Apr 20 03:04:35 1994
+--- ../../ajit/xntp3/xntpd/ntp_io.c	Fri Apr 22 15:06:01 1994
+***************
+*** 231,239 ****
+  	inter_list[0].sent = 0;
+  	inter_list[0].notsent = 0;
+  	inter_list[0].flags = INT_BROADCAST;
+- #ifdef MCAST
+- 	inter_list[0].flags |= INT_MULTICAST;
+- #endif /* MCAST */
+  
+  #ifdef USE_STREAMS_DEVICE_FOR_IF_CONFIG
+  	if ((vs = open("/dev/ip", O_RDONLY)) < 0) {
+--- 231,236 ----
+***************
+*** 485,490 ****
+--- 482,489 ----
+  	if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
+  	    (char *)&mreq, sizeof(mreq)) == -1)
+  		syslog(LOG_ERR, "setsockopt IP_ADD_MEMBERSHIP fails: %m");
++ 
++ 	inter_list[0].flags |= INT_MULTICAST;
+  }
+  #endif /* MCAST */
+  
+***************
+*** 527,532 ****
+--- 526,533 ----
+  	if (setsockopt(fd, IPPROTO_IP, IP_DROP_MEMBERSHIP,
+  	    (char *)&mreq, sizeof(mreq)) == -1)
+  		syslog(LOG_ERR, "setsockopt IP_DROP_MEMBERSHIP fails: %m");
++ 
++ 	inter_list[0].flags &= ~INT_MULTICAST;
+  }
+  #endif /* MCAST */
+  
+

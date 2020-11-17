@@ -1,0 +1,31 @@
+
+Received: from louie.udel.edu by huey.udel.edu id aa09470; 24 May 94 23:50 EDT
+Received: from odin.oit.unc.edu by louie.udel.edu id aa25002;
+          24 May 94 23:46 EDT
+Received: by odin.oit.unc.edu (5.65/4.7)
+	id AA14387; Tue, 24 May 1994 23:46:25 -0400
+Date: Tue, 24 May 1994 23:46:25 -0400
+From: "Christopher C. Woodbury" <woodbury@odin.oit.unc.edu>
+Message-Id: <9405250346.AA14387@odin.oit.unc.edu>
+To: mills@udel.edu
+Subject: Suggested minor change to xntpdc/ntpdc_ops.c
+
+Dave,
+
+     I got tired of looking up the hosts' names in the "reslist" so I
+made a minor change.  I tried to make the change portable but I haven't
+got a lot of experience with that.  I'm not sure if this code would work
+on a Cray (or any non-64 bit word) hardware.
+
+							 Chris Woodbury
+							woodbury@unc.edu
+
+% diff xntp3.3w/xntpdc/ntpdc_ops.c{.orig,}
+1280c1280,1283
+< 		addr = numtoa(rl->addr);
+---
+> 		if ( ( rl->mask ) == (U_LONG) 0Xffffffff )
+> 			addr = nntohost( rl->addr );
+> 		else
+> 			addr = numtoa( rl->addr );
+

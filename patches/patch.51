@@ -1,0 +1,42 @@
+
+Received: from louie.udel.edu by huey.udel.edu id aa10323; 28 Apr 94 14:53 EDT
+Received: from hpsdlo.sdd.hp.com by louie.udel.edu id aa16707;
+          28 Apr 94 14:48 EDT
+Received: from hpsdlz.sdd.hp.com by hpsdlo.sdd.hp.com with SMTP
+	(1.36.108.4/15.5+IOS 3.21+sdd) id AA11256; Thu, 28 Apr 1994 11:48:40 -0700
+Received: from localhost by hpsdlz.sdd.hp.com with SMTP
+	(1.36.108.4/15.5+IOS 3.21+sdd) id AA25096; Thu, 28 Apr 1994 11:48:39 -0700
+Message-Id: <9404281848.AA25096@hpsdlz.sdd.hp.com>
+To: Mills@udel.edu
+Subject: Re: Snavely Snake 
+In-Reply-To: Your message of Thu, 28 Apr 1994 14:35:41 -0400.
+             <9404281435.aa10244@huey.udel.edu> 
+Date: Thu, 28 Apr 1994 11:48:38 -0700
+From: Ken Stone <ken@sdd.hp.com>
+
+
+Looks like a patch dropped thru somewhere along the line.
+
+  -- Ken
+
+
+
+*** xntp3.3m.orig/xntpd/ntp_unixclock.c	Wed Feb  2 21:20:20 1994
+--- xntp3.3m/xntpd/ntp_unixclock.c	Thu Apr 28 11:46:13 1994
+***************
+*** 262,269 ****
+--- 262,274 ----
+  #endif
+  
+  #ifdef SYS_HPUX
++ #if defined(hp9000s300)
+  #define K_TICKADJ_NAME	"_tickadj"
+  #define K_TICK_NAME		"_old_tick"
++ #else
++ #define K_TICKADJ_NAME	"tickadj"
++ #define K_TICK_NAME		"old_tick"
++ #endif
+  #endif
+  
+  /* The defaults if not defined previously */
+

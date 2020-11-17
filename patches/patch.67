@@ -1,0 +1,240 @@
+
+Received: from louie.udel.edu by huey.udel.edu id aa01961; 15 Jun 94 18:28 EDT
+Received: from gangrene.berkeley.edu by louie.udel.edu id aa07359;
+          15 Jun 94 18:24 EDT
+Received: from localhost.Berkeley.EDU by gangrene.berkeley.edu (8.6.8.1/1.33)
+	id PAB09556; Wed, 15 Jun 1994 15:23:53 -0700
+Message-Id: <199406152223.PAB09556@gangrene.berkeley.edu>
+To: Nick Sayer <mrapple@quack.kfu.com>, mills@udel.edu
+Subject: loadable device driver stubs for SunOS 4.1.3 clk_STREAMS & chu_STREAMS
+Date: Wed, 15 Jun 1994 15:23:52 -0700
+From: Rob Robertson <rob@gangrene.berkeley.edu>
+
+
+Here are some patches to support loadable device drivers for SunOS
+4.1.3.  I got the clk module to load and it works, the chu module is
+untested, but should work.
+
+Also, do you know of any problems with xntp 3.3ww on the Sun4m
+architecture?  It seems to be 'disappearing' from just our sparc
+10's. 
+
+rob
+
+
+*** 1.1	1994/06/15 21:47:14
+--- Makefile.tmpl	1994/06/15 22:12:38
+***************
+*** 13,21 ****
+  DEFS=
+  DEFS_OPT=
+  DEFS_LOCAL=
+! #
+  INCL=-I../include
+! CFLAGS=	$(COPTS) $(DEFS) $(DEFS_LOCAL) $(INCL)
+  CC=		$(COMPILER)
+  #
+  
+--- 13,22 ----
+  DEFS=
+  DEFS_OPT=
+  DEFS_LOCAL=
+! CLK_VDOBJS=clkinit.o tty_clk_STREAMS.o
+! CHU_VDOBJS=chuinit.o tty_chu_STREAMS.o
+  INCL=-I../include
+! CFLAGS=	$(COPTS) $(DEFS) $(DEFS_LOCAL) $(INCL) -DKERNEL
+  CC=		$(COMPILER)
+  #
+  
+***************
+*** 30,35 ****
+--- 31,56 ----
+  				  print "### The parse refclock implementation has their own support in"; \
+  				  print "### parse/*."; } }'
+  
++ loadable: clk.o chu.o
++ 
++ clk.o:	${CLK_VDOBJS}
++ 	ld -r ${OBJS} -o clk.o
++ 
++ clk.h:	
++ 	echo "#define NCLK	2" > clk.h
++ 
++ tty_clk_STREAMS.o: clk.h tty_clk_STREAMS.c
++ 	cc ${CFLAGS} tty_clk_STREAMS.c -c tty_clk_STREAMS.o
++ 
++ chu.o:	${CHU_VDOBJS}
++ 	ld -r ${OBJS} -o chu.o
++ 
++ chu.h:	
++ 	echo "#define NCHU	2" > chu.h
++ 
++ tty_chu_STREAMS.o: chu.h tty_chu_STREAMS.c
++ 	cc ${CFLAGS} tty_chu_STREAMS.c -c tty_chu_STREAMS.o
++ 
+  clean:
+  	-@rm -f *~ *.o *.out *.ln make.log Makefile.bak \
+  		lintlib.errs lint.errs
+*** /dev/null	Wed Jun 15 15:15:52 1994
+--- clkinit.c	Wed Jun 15 15:15:01 1994
+***************
+*** 0 ****
+--- 1,76 ----
++ /*
++ **	dynamically loadable clk driver
++ **
++ **	$Header: /usr/src/etc/xntp3.3ww/kernel/RCS/clkinit.c,v 1.1 1994/06/15 22:14:38 rob Exp $
++ **
++ **	william robertson <rob@agate.berkeley.edu>  
++ */
++ 
++ #include <sys/types.h>
++ #include <sys/conf.h>
++ #include <sys/errno.h>
++ #include <sys/stream.h>
++ #include <sys/syslog.h>
++ 
++ #include <sun/openprom.h>
++ #include <sun/vddrv.h>
++ 
++ extern int findmod();		/* os/str_io.c */
++ 
++ extern struct streamtab clkinfo;
++ 
++ struct vdldrv vd = {
++      VDMAGIC_USER,
++      "clk"
++   };
++ 
++ 
++ int
++ xxxinit(function_code, vdp, vdi, vds)
++ unsigned int function_code;
++ struct vddrv *vdp;
++ addr_t vdi;
++ struct vdstat *vds;
++ {
++      register int i = 0;
++      register int j;
++ 
++      switch (function_code) {
++ 	case VDLOAD:
++ 
++ 	  if (findmod("clk") >= 0) {
++ 	       log(LOG_ERR, "clk stream module already loaded\n");
++ 	       return (EADDRINUSE);
++ 	  }
++  
++ 	  i = findmod("\0");
++ 
++ 	  if (i == -1 || fmodsw[i].f_name[0] != '\0') 
++ 	    return(-1);
++ 
++ 	  for (j = 0; vd.Drv_name[j] != '\0'; j++)	/* XXX check bounds */
++ 	    fmodsw[i].f_name[j] = vd.Drv_name[j];
++ 
++ 	  fmodsw[i].f_name[j] = '\0';
++ 	  fmodsw[i].f_str = &clkinfo;
++ 
++ 	  vdp->vdd_vdtab = (struct vdlinkage *)  &vd;
++ 
++ 	  return(0);
++ 
++ 	case VDUNLOAD:
++ 	  if ((i = findmod(vd.Drv_name)) == -1)
++ 	    return(-1);
++ 
++ 	  fmodsw[i].f_name[0] = '\0';
++ 	  fmodsw[i].f_str = 0;
++ 
++ 	  return(0);
++      
++ 	case VDSTAT:
++ 	  return(0);
++ 
++ 	default:
++ 	  return(EIO);
++      }
++ }
+*** /dev/null	Wed Jun 15 15:15:52 1994
+--- chuinit.c	Wed Jun 15 15:14:56 1994
+***************
+*** 0 ****
+--- 1,76 ----
++ /*
++ **	dynamically loadable chu driver
++ **
++ **	$Header: /usr/src/etc/xntp3.3ww/kernel/RCS/chuinit.c,v 1.1 1994/06/15 22:14:38 rob Exp $
++ **
++ **	william robertson <rob@agate.berkeley.edu>  
++ */
++ 
++ #include <sys/types.h>
++ #include <sys/conf.h>
++ #include <sys/errno.h>
++ #include <sys/stream.h>
++ #include <sys/syslog.h>
++ 
++ #include <sun/openprom.h>
++ #include <sun/vddrv.h>
++ 
++ extern int findmod();		/* os/str_io.c */
++ 
++ extern struct streamtab chuinfo;
++ 
++ struct vdldrv vd = {
++      VDMAGIC_USER,
++      "chu"
++   };
++ 
++ 
++ int
++ xxxinit(function_code, vdp, vdi, vds)
++ unsigned int function_code;
++ struct vddrv *vdp;
++ addr_t vdi;
++ struct vdstat *vds;
++ {
++      register int i = 0;
++      register int j;
++ 
++      switch (function_code) {
++ 	case VDLOAD:
++ 
++ 	  if (findmod("chu") >= 0) {
++ 	       log(LOG_ERR, "chu stream module already loaded\n");
++ 	       return (EADDRINUSE);
++ 	  }
++  
++ 	  i = findmod("\0");
++ 
++ 	  if (i == -1 || fmodsw[i].f_name[0] != '\0') 
++ 	    return(-1);
++ 
++ 	  for (j = 0; vd.Drv_name[j] != '\0'; j++)	/* XXX check bounds */
++ 	    fmodsw[i].f_name[j] = vd.Drv_name[j];
++ 
++ 	  fmodsw[i].f_name[j] = '\0';
++ 	  fmodsw[i].f_str = &chuinfo;
++ 
++ 	  vdp->vdd_vdtab = (struct vdlinkage *)  &vd;
++ 
++ 	  return(0);
++ 
++ 	case VDUNLOAD:
++ 	  if ((i = findmod(vd.Drv_name)) == -1)
++ 	    return(-1);
++ 
++ 	  fmodsw[i].f_name[0] = '\0';
++ 	  fmodsw[i].f_str = 0;
++ 
++ 	  return(0);
++      
++ 	case VDSTAT:
++ 	  return(0);
++ 
++ 	default:
++ 	  return(EIO);
++      }
++ }
+

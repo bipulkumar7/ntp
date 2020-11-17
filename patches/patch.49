@@ -1,0 +1,236 @@
+
+Received: from louie.udel.edu by huey.udel.edu id aa04111; 27 Apr 94 14:45 EDT
+Received: from [198.180.192.241] by louie.udel.edu id aa25775;
+          27 Apr 94 14:42 EDT
+Received: by usdesign.com id AA01906
+  (5.67a/IDA-1.5 for mills@udel.edu); Wed, 27 Apr 1994 14:42:38 -0400
+From: Jeff Johnson <jbj@usdesign.com>
+Message-Id: <199404271842.AA01906@usdesign.com>
+Subject: Minor patch for xntp-3.3s
+To: mills@udel.edu
+Date: Wed, 27 Apr 1994 14:42:37 -0400 (EDT)
+X-Mailer: ELM [version 2.4 PL21]
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Content-Length: 6058      
+
+Dave --
+
+Below are some (very minor) patches to xntp-3.3s. I have successfully
+installed xntp-3.3s on the following, mostly with gcc-2.5.8.
+
+	sparc/4.1.3	ipmulti-3.1beta		KERNEL_PLL
+	sparc/4.1.3U1B	ipmulti-3.1beta		KERNEL_PLL
+	m68k/4.1.1	ipmulti-3.1beta		KERNEL_PLL
+	sparc/sol-2.1
+	sparc/sol-2.3
+	alpha/OSF2.0	multicast
+	alpha/OSF1.3
+	HP-UX 9.01	cc
+	AIX 3.2.5
+	BSDI-1.0
+	mips/ultrix 4.3A
+	mips/ultrix 4.3
+
+I have now achieved a multicast tunnel from work to home, but have not yet
+been able to verify an actual 224.0.1.1 transmission. More later ...
+	
+Jeff Johnson	N3NPQ
+jbj@USDesign.COM
+
+===========================================================================
+
+Change below applies to kernel/tty_clk_STREAMS.c
+===================================================================
+diff -r -c2 /tmp/tty_clk.c ./tty_clk.c
+*** /tmp/tty_clk.c	Wed Apr 27 14:36:28 1994
+--- ./tty_clk.c	Mon Apr 25 12:21:34 1994
+***************
+*** 39,42 ****
+--- 39,43 ----
+  #include <sys/user.h>
+  #include <sys/errno.h>
++ #include <sys/syslog.h>
+  
+  #include <sys/clkdefs.h>
+
+This one is a matter of taste -- I run with fixincludes.
+===================================================================
+RCS file: /src/master/xntp-3.3s/compilers/sunos5.2.gcc,v
+retrieving revision 1.1.1.1
+diff -c -2 -r1.1.1.1 sunos5.2.gcc
+*** 1.1.1.1	1994/04/22 16:46:25
+--- sunos5.2.gcc	1994/04/25 13:55:39
+***************
+*** 1,2 ****
+! COMPILER= gcc -traditional
+  
+--- 1,2 ----
+! COMPILER= gcc # -traditional
+  
+The original define prevented compilation with Solaris 2.X.
+===================================================================
+RCS file: /src/master/xntp-3.3s/include/sys/bsd_audioirig.h,v
+retrieving revision 1.1.1.1
+diff -c -2 -r1.1.1.1 bsd_audioirig.h
+*** 1.1.1.1	1994/04/22 16:46:36
+--- bsd_audioirig.h	1994/04/25 16:01:16
+***************
+*** 14,25 ****
+   * irig ioctls
+   */
+! #if (defined(sun) || defined(ibm032)) && !defined(__GNUC__)
+! #define AUDIO_IRIG_OPEN         _IO(A, 50)
+! #define AUDIO_IRIG_CLOSE        _IO(A, 51)
+! #define AUDIO_IRIG_SETFORMAT    _IOWR(A, 52, int)
+! #else
+  #define AUDIO_IRIG_OPEN         _IO('A', 50)
+  #define AUDIO_IRIG_CLOSE        _IO('A', 51)
+  #define AUDIO_IRIG_SETFORMAT    _IOWR('A', 52, int)
+  #endif
+  
+--- 14,25 ----
+   * irig ioctls
+   */
+! #if defined(__STDC__) || !(defined(ibm032) && !defined(__GNUC))
+  #define AUDIO_IRIG_OPEN         _IO('A', 50)
+  #define AUDIO_IRIG_CLOSE        _IO('A', 51)
+  #define AUDIO_IRIG_SETFORMAT    _IOWR('A', 52, int)
++ #else
++ #define AUDIO_IRIG_OPEN         _IO(A, 50)
++ #define AUDIO_IRIG_CLOSE        _IO(A, 51)
++ #define AUDIO_IRIG_SETFORMAT    _IOWR(A, 52, int)
+  #endif
+  
+As best as I can tell, only sun has <sys/ioccom.h>, and only sun has _IOWN.
+===================================================================
+RCS file: /src/master/xntp-3.3s/include/sys/clkdefs.h,v
+retrieving revision 1.1.1.1
+diff -c -2 -r1.1.1.1 clkdefs.h
+*** 1.1.1.1	1994/04/22 16:46:36
+--- clkdefs.h	1994/04/26 20:25:01
+***************
+*** 3,7 ****
+--- 3,11 ----
+   */
+  
++ #if defined(sun)
+  #include <sys/ioccom.h>
++ #else
++ #include <sys/ioctl.h>
++ #endif
+  
+  /*
+***************
+*** 11,14 ****
+--- 15,21 ----
+  
+  #define CLK_MAXSTRSIZE 32
++ struct clk_tstamp_charset {		/* XXX to use _IOW not _IOWN */
++ 	char	val[CLK_MAXSTRSIZE];
++ };
+  
+  /*
+***************
+*** 24,31 ****
+   */
+  
+! #if __STDC__
+! #define CLK_SETSTR _IOWN('K',01,CLK_MAXSTRSIZE)
+  #else
+! #define CLK_SETSTR _IOWN(K,01,CLK_MAXSTRSIZE)
+  #endif
+  
+--- 31,38 ----
+   */
+  
+! #if defined(__STDC__)			/* XXX avoid __STDC__=0 on SOLARIS */
+! #define CLK_SETSTR _IOW('K', 01, struct clk_tstamp_charset)
+  #else
+! #define CLK_SETSTR _IOW(K, 01, struct clk_tstamp_charset)
+  #endif
+  
+I usually do *not* install as root, so the chown/chgrp to bin.bin fails.
+The change permits the install to complete in spite of this.
+===================================================================
+RCS file: /src/master/xntp-3.3s/scripts/install.sh,v
+retrieving revision 1.1.1.1
+diff -c -2 -r1.1.1.1 install.sh
+*** 1.1.1.1	1994/04/22 16:47:00
+--- install.sh	1994/04/23 16:22:18
+***************
+*** 88,92 ****
+    chmod $mode $destination &&
+    chown $owner $destination &&
+!   chgrp $group $destination) || exit 1
+  
+  # /bin/rm -f $OLDdestination
+--- 88,92 ----
+    chmod $mode $destination &&
+    chown $owner $destination &&
+!   chgrp $group $destination) || true # exit 1
+  
+  # /bin/rm -f $OLDdestination
+
+This is what I did. I'm sure this will need some more adjustment.
+===================================================================
+RCS file: /src/master/xntp-3.3s/xntpd/ntp_io.c,v
+retrieving revision 1.1.1.1
+diff -c -2 -r1.1.1.1 ntp_io.c
+*** 1.1.1.1	1994/04/22 16:47:07
+--- ntp_io.c	1994/04/25 15:05:42
+***************
+*** 11,15 ****
+  #include <sys/time.h>
+  
+! #ifdef MCAST
+  #include "ntp_in.h"
+  #endif /* MCAST */
+--- 11,15 ----
+  #include <sys/time.h>
+  
+! #if defined(MCAST) && !defined(sun) && !defined(SYS_BSDI) && !defined(SYS_DECOSF1)
+  #include "ntp_in.h"
+  #endif /* MCAST */
+
+Only permit IRIG on sun.
+===================================================================
+RCS file: /src/master/xntp-3.3s/xntpd/refclock_conf.c,v
+retrieving revision 1.1.1.1
+diff -c -2 -r1.1.1.1 refclock_conf.c
+*** 1.1.1.1	1994/04/22 16:47:10
+--- refclock_conf.c	1994/04/26 20:39:24
+***************
+*** 87,91 ****
+  #endif
+  
+! #ifdef IRIG
+  extern	struct refclock		refclock_irig;
+  #else
+--- 87,91 ----
+  #endif
+  
+! #if defined(IRIG) && defined(sun)	/* XXX sun only */
+  extern	struct refclock		refclock_irig;
+  #else
+===================================================================
+RCS file: /src/master/xntp-3.3s/xntpd/refclock_irig.c,v
+retrieving revision 1.1.1.1
+diff -c -2 -r1.1.1.1 refclock_irig.c
+*** 1.1.1.1	1994/04/22 16:47:10
+--- refclock_irig.c	1994/04/26 20:37:00
+***************
+*** 3,7 ****
+   */
+  
+! #if defined(REFCLOCK) && defined(IRIG)
+  #include <stdio.h>
+  #include <ctype.h>
+--- 3,7 ----
+   */
+  
+! #if defined(REFCLOCK) && defined(IRIG) && defined(sun)	/* XXX sun only */
+  #include <stdio.h>
+  #include <ctype.h>
+
