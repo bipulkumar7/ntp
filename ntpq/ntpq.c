@@ -482,17 +482,13 @@ void clear_globals(void)
  * main - parse arguments and handle options
  */
 #ifndef NO_MAIN_ALLOWED
-int
-main(
-	int argc,
-	char *argv[]
-	)
+int main(int argc, char *argv[] )
 {
+	printf("List out the items in argc and in *argv[]");
 	int i;
 	for( i = 0; i<argc; i++)
 	{
-
-	printf("argv[%d] = %s\n", i, argv[i]);
+		printf("argv[%d] = %s\n", i, argv[i]);
 	}
 	return ntpqmain(argc, argv);
 }
@@ -500,20 +496,16 @@ main(
 
 
 #ifndef BUILD_AS_LIB
-int
-ntpqmain(
-	int argc,
-	char *argv[]
-	)
+int ntpqmain( int argc, char *argv[] )
 {
 	u_int ihost;
 	size_t icmd;
 
 
-#ifdef SYS_VXWORKS
+	#ifdef SYS_VXWORKS
 	clear_globals();
 	taskPrioritySet(taskIdSelf(), 100 );
-#endif
+	#endif
 
 	delay_time.l_ui = 0;
 	delay_time.l_uf = DEFDELAY;
@@ -525,7 +517,6 @@ ntpqmain(
 	/* Check to see if we have IPv6. Otherwise default to IPv4 */
 	if (!ipv6_works)
 		ai_fam_default = AF_INET;
-
 	/* Fixup keytype's help based on available digest names */
 
 	{
@@ -534,8 +525,10 @@ ntpqmain(
 
 	    list = list_digest_names();
 
-	    for (icmd = 0; icmd < sizeof(builtins)/sizeof(*builtins); icmd++) {
-		if (strcmp("keytype", builtins[icmd].keyword) == 0) {
+	    for (icmd = 0; icmd < sizeof(builtins)/sizeof(*builtins); icmd++) 
+	    {
+		if (strcmp("keytype", builtins[icmd].keyword) == 0) 
+		{
 		    break;
 		}
 	    }
@@ -544,17 +537,13 @@ ntpqmain(
 	    /* This should only "trip" if "keytype" is removed from builtins */
 	    INSIST(icmd < sizeof(builtins)/sizeof(*builtins));
 
-#ifdef OPENSSL
+	   #ifdef OPENSSL
 	    builtins[icmd].desc[0] = "digest-name";
-	    my_easprintf(&msg,
-			 "set key type to use for authenticated requests, one of:%s",
-			 list);
-#else
+	    my_easprintf(&msg, "set key type to use for authenticated requests, one of:%s", list);
+	   #else
 	    builtins[icmd].desc[0] = "md5";
-	    my_easprintf(&msg,
-			 "set key type to use for authenticated requests (%s)",
-			 list);
-#endif
+	    my_easprintf(&msg, "set key type to use for authenticated requests (%s)",list);
+	   #endif
 	    builtins[icmd].comment = msg;
 	    free(list);
 	}
