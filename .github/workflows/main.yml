@@ -4,5 +4,4 @@ jobs:
   execute-CompileNTP:
     runs-on: self-hosted
     steps:
-      - run: echo $SHELL
-      - run: cd /root/ntp/ntp-4.2.8p15/ ; ./configure ; cd /root/ntp/ntp-4.2.8p15/ntpq/ ; ls -l ; make 
+      - run: cd /root/ntp/ntp-4.2.8p15/ ; ./configure ; cd /root/ntp/ntp-4.2.8p15/ntpq/ ; make 
