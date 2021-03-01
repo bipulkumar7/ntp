@@ -4,4 +4,4 @@ jobs:
   execute-CompileNTP:
     runs-on: self-hosted
     steps:
-      - run: /root/ntp/ntp-4.2.8p15/configure ;cd /root/ntp/ntp-4.2.8p15/ntpq ; make distclean; make
+      - run: /root/ntp/ntp-4.2.8p15/configure ; cd /root/ntp/ntp-4.2.8p15/ntpq ; make clean ; make

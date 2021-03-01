@@ -1,3 +1,0 @@
-libunity_a-ulib_teardown.o: ulib_teardown.c /usr/include/stdc-predef.h
-
-/usr/include/stdc-predef.h:
